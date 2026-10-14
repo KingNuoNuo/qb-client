@@ -272,3 +272,9 @@ python _static_check.py
   the main interface is designed for 1440 pt+.
 - When IPv6 trackers are unreachable, the status shows "firewalled" — that is qB's own connection status,
   not a problem with this client.
+
+---
+
+## License
+
+This project is open source under the [MIT License](LICENSE).
