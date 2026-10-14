@@ -2,6 +2,8 @@
 
 [![build](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml/badge.svg)](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml)
 
+**简体中文** | [English](README.en.md)
+
 Rust + egui 写的 **qBittorrent 桌面管理客户端**（Windows / macOS），直接对接 qBittorrent WebAPI v2，
 兼容 **qBittorrent 5.x**（含 5.1.0，已在代码里处理 5.0 把 `paused*` 状态改名为 `stopped*` 的变更）。
 
@@ -11,6 +13,8 @@ Rust + egui 写的 **qBittorrent 桌面管理客户端**（Windows / macOS），
 ---
 
 ## 截图
+
+> 截图中的种子名称等隐私信息已打码。
 
 **深色**
 
