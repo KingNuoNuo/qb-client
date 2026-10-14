@@ -1,0 +1,49 @@
+[package]
+name = "qb-client"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+description = "qBittorrent 桌面管理客户端（Rust + egui / WebAPI v2，兼容 qBittorrent 5.x）"
+license = "MIT"
+publish = false
+
+[dependencies]
+# GUI：egui 即时模式 + eframe 桌面壳（glow/OpenGL 后端，Windows 单 exe）
+eframe = { version = "0.29", features = ["persistence"] }
+egui = "0.29"
+egui_extras = "0.29"
+
+# 序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# HTTP：blocking 客户端 + cookie store（自动保存 qB 的 SID 会话）
+reqwest = { version = "0.12", default-features = false, features = [
+    "blocking",
+    "json",
+    "multipart",
+    "cookies",
+    "rustls-tls",
+    "charset",
+    "http2",
+] }
+
+# 时间格式化
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+# 原生文件选择对话框（添加 .torrent 文件用）
+rfd = "0.15"
+
+# 错误处理
+anyhow = "1"
+
+# 让 Windows 标题栏配色跟随应用主题（拿原生窗口句柄用）。
+# eframe 的 ViewportCommand::SetTheme 在 0.29 是**空实现**，只能自己调 DWM。
+[target.'cfg(windows)'.dependencies]
+raw-window-handle = "0.6"
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+codegen-units = 1
+strip = true

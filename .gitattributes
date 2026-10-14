@@ -1,0 +1,9 @@
+# 统一用 LF：GitHub Actions 里 macOS 的 `run:` 块是 bash 跑的，
+# 混进 CRLF 会报 `\r: command not found` 这类没头没脑的错误。
+* text=auto eol=lf
+# Windows 批处理是个例外，CRLF 才稳
+*.bat text eol=crlf
+# 二进制
+*.png binary
+*.ttf binary
+*.zip binary

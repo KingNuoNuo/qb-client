@@ -1,0 +1,90 @@
+name: build
+
+# 两个触发点：
+#   · push 到 main / 手动跑 —— 只产出 artifact，验证三端都能编译
+#   · push v* 标签      —— 产出 artifact 并附到 GitHub Release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    name: Windows x64 (MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release --locked
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/release/qb-client.exe dist/qb-client-windows-x64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qb-client-windows-x64
+          path: dist/*
+
+  macos:
+    name: macOS (${{ matrix.arch }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            arch: arm64
+          - target: x86_64-apple-darwin
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      # 打成 .app 包：裸二进制在 Finder 里双击不了，也没法拖进 Applications。
+      # Info.plist 是仓库里的实体文件（assets/macos/Info.plist），这里直接拷。
+      - name: Package .app
+        run: |
+          APP="qb-client.app"
+          mkdir -p "$APP/Contents/MacOS"
+          cp "target/${{ matrix.target }}/release/qb-client" "$APP/Contents/MacOS/qb-client"
+          chmod +x "$APP/Contents/MacOS/qb-client"
+          cp "assets/macos/Info.plist" "$APP/Contents/Info.plist"
+          mkdir -p dist
+          # 用 ditto 而不是 zip —— 它会正确处理 .app 的目录结构和资源叉
+          ditto -c -k --keepParent "$APP" "dist/qb-client-macos-${{ matrix.arch }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qb-client-macos-${{ matrix.arch }}
+          path: dist/*
+
+  release:
+    name: Attach to Release
+    needs: [windows, macos]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
