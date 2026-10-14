@@ -1,9 +1,12 @@
 # qb-client
 
-Rust + egui 写的 **qBittorrent 桌面管理客户端**（Windows），直接对接 qBittorrent WebAPI v2，
+[![build](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml/badge.svg)](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml)
+
+Rust + egui 写的 **qBittorrent 桌面管理客户端**（Windows / macOS），直接对接 qBittorrent WebAPI v2，
 兼容 **qBittorrent 5.x**（含 5.1.0，已在代码里处理 5.0 把 `paused*` 状态改名为 `stopped*` 的变更）。
 
-产物是**单个 exe**，不依赖 WebView / Node / 运行时。字体（约 800KB）已内嵌进二进制。
+产物是**单个可执行文件**（Windows 一个 exe；macOS 一个 `.app`），不依赖 WebView / Node / 运行时。
+字体（约 800KB）已内嵌进二进制。
 
 ---
 
