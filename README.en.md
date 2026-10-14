@@ -1,6 +1,16 @@
 # qb-client
 
 [![build](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml/badge.svg)](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml)
+[![Stars](https://img.shields.io/github/stars/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/stargazers)
+[![Forks](https://img.shields.io/github/forks/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/network/members)
+[![Issues](https://img.shields.io/github/issues/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/issues)
+[![License](https://img.shields.io/github/license/KingNuoNuo/qb-client?style=flat&color=4F46E5)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/KingNuoNuo/qb-client?style=flat&color=4F46E5&label=Release)](https://github.com/KingNuoNuo/qb-client/releases/latest)
+[![Top Language](https://img.shields.io/github/languages/top/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client)
+
+[⬇️ Download](https://github.com/KingNuoNuo/qb-client/releases/latest) · [🐛 Issues](https://github.com/KingNuoNuo/qb-client/issues)
+
+`qBittorrent` `Rust` `egui` `Desktop App` `Torrent` `Download Manager` `Cross-platform` `Windows` `macOS` `NAS` `Self-hosted` `WebUI`
 
 [简体中文](README.md) | **English**
 
@@ -279,3 +289,9 @@ python _static_check.py
 ## License
 
 This project is open source under the [MIT License](LICENSE).
+
+<!-- traffic:start -->
+
+## 📊 Traffic
+
+<!-- traffic:end -->

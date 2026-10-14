@@ -1,6 +1,18 @@
 # qb-client
 
 [![build](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml/badge.svg)](https://github.com/KingNuoNuo/qb-client/actions/workflows/build.yml)
+[![Stars](https://img.shields.io/github/stars/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/stargazers)
+[![Forks](https://img.shields.io/github/forks/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/network/members)
+[![Watchers](https://img.shields.io/github/watchers/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/watchers)
+[![Issues](https://img.shields.io/github/issues/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/issues)
+[![License](https://img.shields.io/github/license/KingNuoNuo/qb-client?style=flat&color=4F46E5)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/KingNuoNuo/qb-client?style=flat&color=4F46E5&label=Release)](https://github.com/KingNuoNuo/qb-client/releases/latest)
+[![Last Commit](https://img.shields.io/github/last-commit/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client/commits/main)
+[![Top Language](https://img.shields.io/github/languages/top/KingNuoNuo/qb-client?style=flat&color=4F46E5)](https://github.com/KingNuoNuo/qb-client)
+
+[⬇️ 下载](https://github.com/KingNuoNuo/qb-client/releases/latest) · [🐛 反馈问题](https://github.com/KingNuoNuo/qb-client/issues) · [💡 功能建议](https://github.com/KingNuoNuo/qb-client/issues)
+
+`qBittorrent` `Rust` `egui` `Desktop App` `Torrent` `Download Manager` `Cross-platform` `Windows` `macOS` `NAS` `Self-hosted` `WebUI`
 
 **简体中文** | [English](README.en.md)
 
@@ -248,3 +260,20 @@ python _static_check.py
 ## 许可证 / License
 
 本项目以 [MIT 许可证](LICENSE) 开源。
+
+<!-- traffic:start -->
+
+## 📊 访问统计
+
+![近 14 天访问趋势](docs/traffic.svg)
+
+| 指标 | 近 14 天 |
+| --- | ---: |
+| 页面浏览量 | 0 |
+| 独立访客 | 0 |
+| 克隆次数 | 0 |
+| 独立克隆者 | 0 |
+
+<sub>数据窗口 2026-10-01 ~ 2026-10-14 · 由 GitHub Actions 每日更新于 2026-10-14 · 来源：GitHub Traffic API（仅统计最近 14 天）</sub>
+
+<!-- traffic:end -->
