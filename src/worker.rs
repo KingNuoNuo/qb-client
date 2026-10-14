@@ -151,6 +151,8 @@ pub enum Cmd {
     SetGlobalUpLimit(i64),
     SetTorrentLimit { hashes: Vec<String>, dl: Option<i64>, up: Option<i64> },
     ToggleAltSpeed,
+    /// 批量调整某任务里若干文件的下载优先级
+    SetFilePriority { hash: String, ids: Vec<usize>, priority: i32 },
     /// 拉一次完整详情（五个模块）
     FetchDetail(String),
     Shutdown,
@@ -619,6 +621,10 @@ fn run_op(shared: &Arc<Mutex<Shared>>, client: &mut Option<QbClient>, cmd: Cmd) 
         Cmd::ToggleAltSpeed => c
             .toggle_speed_limits_mode()
             .map(|_| report_ok(shared, "已切换备用限速模式")),
+
+        Cmd::SetFilePriority { hash, ids, priority } => c
+            .set_file_priority(&hash, &ids, priority)
+            .map(|_| report_ok(shared, format!("已调整 {} 个文件的优先级", ids.len()))),
 
         // 这几条在 run() 里已单独处理，不会走到这里
         Cmd::Connect(_)

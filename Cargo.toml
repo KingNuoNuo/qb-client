@@ -1,6 +1,6 @@
 [package]
 name = "qb-client"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.76"
 description = "qBittorrent 桌面管理客户端（Rust + egui / WebAPI v2，兼容 qBittorrent 5.x）"

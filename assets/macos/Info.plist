@@ -5,8 +5,8 @@
   <key>CFBundleName</key><string>qBittorrent Manager</string>
   <key>CFBundleDisplayName</key><string>qBittorrent Manager</string>
   <key>CFBundleIdentifier</key><string>io.github.npc1024.qb-client</string>
-  <key>CFBundleVersion</key><string>0.1.0</string>
-  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleVersion</key><string>0.2.0</string>
+  <key>CFBundleShortVersionString</key><string>0.2.0</string>
   <key>CFBundleExecutable</key><string>qb-client</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>LSMinimumSystemVersion</key><string>10.13</string>

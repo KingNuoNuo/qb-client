@@ -361,18 +361,65 @@ impl QbClient {
         Ok(())
     }
 
-    /// 暂停（qB 5.x 里语义等同 stop）。
+    /// 暂停 / 恢复。
     ///
-    /// qB 5.0 把 `paused` 全面改名为 `stopped`，但**旧端点 `/torrents/pause`
-    /// 与 `/torrents/resume` 作为兼容别名仍然保留**，所以这里继续用它们，
-    /// 一份代码同时兼容 4.x 与 5.x。若将来某个版本移除了别名，
-    /// 只需在这里换成 /torrents/stop 与 /torrents/start。
+    /// ⚠️ 端点在 qB 5.x 变过名：5.0 把 `pause`/`resume` 改成 `stop`/`start`，
+    /// 当时旧的还留着作兼容别名；**5.1 把别名删了** —— 直接打
+    /// `/torrents/pause` 在 5.1.0 上实测返回 404，暂停就这么失效的。
+    ///
+    /// 所以这里**新端点优先、404 回退旧端点**：5.x 走 stop/start，
+    /// 4.x 第一发 404 后落到 pause/resume。不用先探测版本，一发请求
+    /// 就把版本差异消化掉了。
     pub fn pause(&self, hashes: &[String]) -> Result<()> {
-        self.post_hashes("/api/v2/torrents/pause", hashes)
+        self.post_hashes_compat("/api/v2/torrents/stop", "/api/v2/torrents/pause", hashes)
     }
 
     pub fn resume(&self, hashes: &[String]) -> Result<()> {
-        self.post_hashes("/api/v2/torrents/resume", hashes)
+        self.post_hashes_compat("/api/v2/torrents/start", "/api/v2/torrents/resume", hashes)
+    }
+
+    /// 同 `post_hashes`，但允许在 404 时换一条路径重试。
+    ///
+    /// 判 404 用的是错误信息里的 "HTTP 404" —— `ensure_ok` 的报错是我们
+    /// 自己拼的固定格式，不依赖 qB 的响应体，所以这个匹配是稳的。
+    fn post_hashes_compat(&self, new_path: &str, old_path: &str, hashes: &[String]) -> Result<()> {
+        if hashes.is_empty() {
+            return Ok(());
+        }
+        if let Err(e) = self.post_hashes(new_path, hashes) {
+            if e.to_string().contains("HTTP 404") {
+                return self.post_hashes(old_path, hashes);
+            }
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// 批量设置**文件级**下载优先级（`POST /torrents/filePrio`）。
+    ///
+    /// ⚠️ 参数名是 **`id`**（不是 `ids`），多个下标用 **`|`** 分隔 ——
+    /// 用 `ids=0,1` 会直接 400（实测）。
+    ///
+    /// `ids` 是文件在 `/torrents/files` 返回数组里的**下标**（0 起）——
+    /// qB 没有单独的文件 id，就是按数组顺序对应的。
+    /// priority 按 WebAPI 文档：0 = 不下载，1 = 普通，6 = 高，7 = 最高。
+    pub fn set_file_priority(&self, hash: &str, ids: &[usize], priority: i32) -> Result<()> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        let ids = ids
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join("|");
+        self.post_kv(
+            "/api/v2/torrents/filePrio",
+            vec![
+                ("hash", hash.to_string()),
+                ("id", ids),
+                ("priority", priority.to_string()),
+            ],
+        )
     }
 
     pub fn delete(&self, hashes: &[String], delete_files: bool) -> Result<()> {

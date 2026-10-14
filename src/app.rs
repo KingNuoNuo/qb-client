@@ -2354,7 +2354,7 @@ impl QbApp {
                         DetailTab::Trackers => detail_trackers(ui, p, &d.trackers),
                         DetailTab::Peers => detail_peers(ui, p, &d.peers),
                         DetailTab::HttpSources => detail_webseeds(ui, p, &d.webseeds),
-                        DetailTab::Content => detail_files(ui, p, &d.files),
+                        DetailTab::Content => detail_files(ui, p, &hash, &d.files, &self.worker),
                     }
                 }
 
@@ -3246,11 +3246,46 @@ fn detail_webseeds(ui: &mut egui::Ui, p: &Palette, list: &[WebSeed]) {
 }
 
 /// **内容** —— 列对齐 WebUI：Name / Size / Progress / Priority / Remaining
-fn detail_files(ui: &mut egui::Ui, p: &Palette, list: &[TorrentFile]) {
+/// 内容页的优先级档位（对齐 WebAPI `filePrio` 接受的值：0/1/6/7）。
+const FILE_PRIOS: [(i32, &str); 4] = [(7, "最高"), (6, "高"), (1, "普通"), (0, "不下载")];
+
+fn prio_label(v: i32) -> &'static str {
+    FILE_PRIOS
+        .iter()
+        .find(|(pv, _)| *pv == v)
+        .map_or("普通", |(_, l)| *l)
+}
+
+fn prio_color(p: &Palette, v: i32) -> Color32 {
+    match v {
+        0 => p.faint,
+        6 => p.warn,
+        7 => p.accent,
+        _ => p.muted,
+    }
+}
+
+/// **内容** —— 文件列表 + 下载勾选 + 优先级调整。
+///
+/// 列对齐 WebUI：下载 / Name / Size / Progress / Priority / Remaining。
+/// 勾选框 = 这个文件下不下载（priority 在 0 与非 0 之间切换）；
+/// 优先级下拉 = WebAPI 的 0/1/6/7 四档。两者都**改完立即生效**：
+/// 发 `SetFilePriority`，随后补一发 `FetchDetail` 把服务器上的新状态拉回来
+/// —— qB 的 filePrio 是同步生效的，紧跟着拉一次就能看到新值。
+fn detail_files(
+    ui: &mut egui::Ui,
+    p: &Palette,
+    hash: &str,
+    list: &[TorrentFile],
+    worker: &Worker,
+) {
     if list.is_empty() {
         empty_hint(ui, p, "该任务没有文件信息（可能是纯 magnet，元数据还没拿到）");
         return;
     }
+    // 行内改动先攒着，表格画完统一发。
+    let mut pending: Vec<(usize, i32)> = Vec::new();
+
     table_borderless(ui);
     TableBuilder::new(ui)
         .id_salt("d_files")
@@ -3261,12 +3296,14 @@ fn detail_files(ui: &mut egui::Ui, p: &Palette, list: &[TorrentFile]) {
         .auto_shrink([false, false])
         .min_scrolled_height(120.0)
         .max_scroll_height(420.0)
+        .column(Column::initial(44.0).at_least(38.0).resizable(false))
         .column(Column::remainder().at_least(240.0).clip(true))
         .column(Column::initial(96.0).at_least(80.0))
         .column(Column::initial(136.0).at_least(100.0))
-        .column(Column::initial(80.0).at_least(66.0))
+        .column(Column::initial(96.0).at_least(84.0))
         .column(Column::initial(96.0).at_least(80.0))
         .header(th::HEADER_H, |mut h| {
+            thead(&mut h, p, "下载");
             thead(&mut h, p, "名称");
             thead_r(&mut h, p, "大小");
             thead(&mut h, p, "进度");
@@ -3274,9 +3311,19 @@ fn detail_files(ui: &mut egui::Ui, p: &Palette, list: &[TorrentFile]) {
             thead_r(&mut h, p, "剩余");
         })
         .body(|body| {
-            body.rows(24.0, list.len(), |mut row| {
+            body.rows(26.0, list.len(), |mut row| {
                 let i = row.index();
                 let f = &list[i];
+
+                // 勾选 = 下不下载。取消勾选 → 0（不下载）；
+                // 重新勾选 → 恢复成「普通」，要更高级别再用下拉调。
+                row.col(|ui| {
+                    let mut on = f.priority > 0;
+                    if ui.add(egui::Checkbox::without_text(&mut on)).changed() {
+                        pending.push((i, if on { 1 } else { 0 }));
+                    }
+                });
+
                 row.col(|ui| path_cell(ui, p, &f.name));
                 row.col(|ui| w::num_cell(ui, p, &fmt_size(f.size), p.muted));
                 row.col(|ui| {
@@ -3288,14 +3335,25 @@ fn detail_files(ui: &mut egui::Ui, p: &Palette, list: &[TorrentFile]) {
                         if f.progress >= 1.0 { p.up } else { p.dl },
                     );
                 });
+                // 优先级下拉。用本地副本 + `selectable_value`，
+                // 点中后副本 != 服务器值 → 记一笔改动。
                 row.col(|ui| {
-                    let c = match f.priority {
-                        0 => p.faint,
-                        6 => p.warn,
-                        7 => p.accent,
-                        _ => p.muted,
-                    };
-                    w::text_cell(ui, p, f.priority_cn(), c, 11.5);
+                    let mut cur = f.priority;
+                    egui::ComboBox::from_id_salt(("d_file_prio", i))
+                        .width(76.0)
+                        .selected_text(
+                            RichText::new(prio_label(f.priority))
+                                .font(th::id(11.0))
+                                .color(prio_color(p, f.priority)),
+                        )
+                        .show_ui(ui, |ui| {
+                            for (v, label) in FILE_PRIOS {
+                                ui.selectable_value(&mut cur, v, label);
+                            }
+                        });
+                    if cur != f.priority {
+                        pending.push((i, cur));
+                    }
                 });
                 row.col(|ui| {
                     let left = ((f.size as f64) * (1.0 - f.progress).clamp(0.0, 1.0)) as i64;
@@ -3303,6 +3361,18 @@ fn detail_files(ui: &mut egui::Ui, p: &Palette, list: &[TorrentFile]) {
                 });
             });
         });
+
+    if pending.is_empty() {
+        return;
+    }
+    for (i, pr) in &pending {
+        worker.send(Cmd::SetFilePriority {
+            hash: hash.to_string(),
+            ids: vec![*i],
+            priority: *pr,
+        });
+    }
+    worker.send(Cmd::FetchDetail(hash.to_string()));
 }
 
 /// 内容页的文件名单元：目录部分压淡、文件名正常色。
