@@ -10,6 +10,18 @@ Rust + egui 写的 **qBittorrent 桌面管理客户端**（Windows / macOS），
 
 ---
 
+## 截图
+
+**深色**
+
+![深色主题](docs/screenshot-dark.png)
+
+**浅色**
+
+![浅色主题](docs/screenshot-light.png)
+
+---
+
 ## 界面设计
 
 视觉方向是 **工业实用（Industrial / Utilitarian）** —— 仪表盘密度、等宽数字、发丝边框，
@@ -20,7 +32,7 @@ Rust + egui 写的 **qBittorrent 桌面管理客户端**（Windows / macOS），
 | **展示字** | Archivo Black（工业 grotesque），只用于品牌字样 |
 | **界面正文** | Barlow（DIN 系骨架，R / M / SB 三档真字重） |
 | **数字** | IBM Plex Mono（SemiBold / Bold）—— 表格里所有数值等宽对齐 |
-| **中文** | 微软雅黑（运行时从 `C:\Windows\Fonts` 加载，不内嵌，避免 exe 膨胀十几 MB） |
+| **中文** | 不内嵌，运行时从系统字体目录按平台候选表取（Windows 微软雅黑 / macOS 苹方 / Linux Noto CJK），避免 exe 膨胀十几 MB |
 | **底色** | 暖调近黑 `#0C0D0F`，不是纯黑也不是蓝黑；亮色主题用暖灰画布 `#EDEAE3` + 米白面板 `#F8F6F2` |
 | **强调色** | 琥珀 `#FF9F1C`（亮色主题换成 `#B45309` 保证对比度 ≥ 4.5:1），**全屏只有一个**，只给选中态和主操作 |
 | **状态色** | 下载青 `#3FC1FF` / 上传绿 `#4ADE80` / 校验橙 `#F5A524` / 错误红 `#FF5C5C`，是独立的语义层 |
@@ -125,9 +137,8 @@ cargo build --release
 
 - **编译**：`cargo build --release`（rustc 1.99.0 / cargo 1.99.0 / Windows MSVC）**零错误零警告**通过，
   产物 `qb-client.exe` **10.6 MB**（`strip` + thin LTO）。
-- **运行**：连上 NAS 上的 qBittorrent **5.1.0**（WebAPI 2.11.6），12 个任务全部正确读出；
-  表格 / 筛选 / 遥测带 / 状态栏 / 深浅色主题渲染正常。
-  当前截图：`docs/screenshot-dark.png`、`docs/screenshot-light.png`。
+- **运行**：连上 qBittorrent **5.1.0**（WebAPI 2.11.6），12 个任务全部正确读出；
+  表格 / 筛选 / 遥测带 / 状态栏 / 深浅色主题渲染正常，截图见开头。
 - **背景去纹理的验证**：对同一窗口矩形做像素逐点扫描 —— 移除前在 x=2026 / 2098 / 2170
   采到三根竖线（间距 72px = 150% 缩放下的 48pt），移除后同一扫描线 `jumps=0`，
   纵向扫描里的四根横线也全部消失。

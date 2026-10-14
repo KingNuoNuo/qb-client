@@ -6,9 +6,9 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    /// 主机名或 IP，例如 `10.0.0.4`
+    /// 主机名或 IP，例如 `192.168.1.10`
     pub host: String,
-    /// WebUI 端口，例如 `58080`
+    /// WebUI 端口，例如 `8080`
     pub port: u16,
     pub use_https: bool,
     pub username: String,
