@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="qb-client icon">
+  <!--
+    qb-client 应用图标 —— 精密仪器面板（precision instrument panel）
+    配色全部取自 .impeccable.md 的设计系统：
+      画布 #0C0D0F（暗色画布） / 强调 #FF9F1C（琥珀，全图唯一有彩色）
+      发丝线 白 12% / 刻度 暖灰 #EDEAE3 30%
+    规则：纯几何、无渐变、无发光、无阴影；小圆角，刻度走直角。
+  -->
+  <!-- 机箱面板 -->
+  <rect x="0" y="0" width="1024" height="1024" rx="229" ry="229" fill="#0C0D0F"/>
+  <!-- 面板发丝线 -->
+  <rect x="4" y="4" width="1016" height="1016" rx="225" ry="225" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="8"/>
+
+  <!-- 数据流入：向下的实心三角 -->
+  <path d="M512 402 L660 157 L364 157 Z" fill="#FF9F1C"/>
+
+  <!-- 进度条：填充到 60% -->
+  <rect x="205" y="520" width="614" height="107" rx="14" ry="14" fill="#FF9F1C"/>
+
+  <!-- 队列刻度（≤32px 尺寸会隐去） -->
+  <rect x="205" y="730" width="429" height="46" rx="0" fill="#EDEAE3" fill-opacity="0.30"/>
+  <rect x="205" y="822" width="266" height="46" rx="0" fill="#EDEAE3" fill-opacity="0.30"/>
+</svg>

@@ -29,6 +29,7 @@ use egui_extras::{Column, TableBuilder};
 
 use crate::api::AddOptions;
 use crate::config::Config;
+use crate::i18n::{self as i18n, tf, tr, Lang};
 use crate::model::{Peer, StateGroup, Torrent, TorrentFile, TorrentProperties, Tracker, WebSeed};
 use crate::theme::{self as th, Palette};
 use crate::util::{
@@ -56,6 +57,8 @@ const CHECK_W: f32 = 28.0;
 #[derive(Clone)]
 struct Snap {
     conn: Conn,
+    /// 当前语言（从 WebUI locale 推断），每帧开头用来同步 i18n 线程局部状态
+    lang: Lang,
     version: String,
     webapi: String,
     transfer: crate::model::TransferInfo,
@@ -77,6 +80,7 @@ impl Default for Snap {
     fn default() -> Self {
         Self {
             conn: Conn::Disconnected,
+            lang: Lang::default(),
             version: String::new(),
             webapi: String::new(),
             transfer: Default::default(),
@@ -98,6 +102,7 @@ impl From<&Shared> for Snap {
     fn from(s: &Shared) -> Self {
         Self {
             conn: s.conn.clone(),
+            lang: s.lang,
             version: s.version.clone(),
             webapi: s.webapi.clone(),
             transfer: s.transfer.clone(),
@@ -131,13 +136,13 @@ enum Filter {
 impl Filter {
     fn label(&self) -> &'static str {
         match self {
-            Filter::All => "全部",
-            Filter::Downloading => "下载中",
-            Filter::Seeding => "做种中",
-            Filter::Completed => "已完成",
-            Filter::Stopped => "已停止",
-            Filter::Error => "错误",
-            Filter::Active => "活动中",
+            Filter::All => tr("全部"),
+            Filter::Downloading => tr("下载中"),
+            Filter::Seeding => tr("做种中"),
+            Filter::Completed => tr("已完成"),
+            Filter::Stopped => tr("已停止"),
+            Filter::Error => tr("错误"),
+            Filter::Active => tr("活动中"),
         }
     }
 
@@ -232,11 +237,11 @@ impl DetailTab {
 
     fn label(self) -> &'static str {
         match self {
-            Self::General => "常规",
+            Self::General => tr("常规"),
             Self::Trackers => "Trackers",
-            Self::Peers => "节点",
-            Self::HttpSources => "HTTP 源",
-            Self::Content => "内容",
+            Self::Peers => tr("节点"),
+            Self::HttpSources => tr("HTTP 源"),
+            Self::Content => tr("内容"),
         }
     }
 
@@ -493,7 +498,7 @@ impl QbApp {
                                 .color(p.text),
                         );
                         ui.label(
-                            RichText::new("远程管理台")
+                            RichText::new(tr("远程管理台"))
                                 .font(th::id_sb(9.5))
                                 .color(p.accent),
                         );
@@ -505,18 +510,18 @@ impl QbApp {
                     let (dot, title, sub) = match &snap.conn {
                         Conn::Connected => (
                             p.up,
-                            "已连接".to_string(),
+                            tr("已连接").to_string(),
                             if snap.version.is_empty() {
                                 "qBittorrent".to_string()
                             } else {
                                 format!("qBittorrent {}", snap.version)
                             },
                         ),
-                        Conn::Connecting => (p.warn, "连接中".to_string(), "正在握手".to_string()),
+                        Conn::Connecting => (p.warn, tr("连接中").to_string(), tr("正在握手").to_string()),
                         Conn::Disconnected => {
-                            (p.faint, "未连接".to_string(), "点右侧「连接设置」".to_string())
+                            (p.faint, tr("未连接").to_string(), tr("点右侧「连接设置」").to_string())
                         }
-                        Conn::Error(_) => (p.err, "连接失败".to_string(), "见底部提示".to_string()),
+                        Conn::Error(_) => (p.err, tr("连接失败").to_string(), tr("见底部提示").to_string()),
                     };
                     let (brect, _b) = ui.allocate_exact_size(vec2(12.0, 30.0), Sense::hover());
                     w::beacon(
@@ -547,7 +552,7 @@ impl QbApp {
                         let conn_txt = conn_status_cn(&snap.transfer.connection_status);
                         let total = snap.torrents.len();
                         let active = snap.torrents.iter().filter(|t| t.is_active()).count();
-                        let act_txt = format!("活动 {}", active);
+                        let act_txt = tf(tr("活动 {}"), &[&active]);
 
                         // 从右往左排：节点 → 任务 → 上传 → 下载
                         w::telemetry(
@@ -555,7 +560,7 @@ impl QbApp {
                             p,
                             &Tele {
                                 arrow: None,
-                                label: "节点",
+                                label: tr("节点"),
                                 value: nodes.to_string(),
                                 unit: &conn_txt,
                                 color: p.muted,
@@ -570,7 +575,7 @@ impl QbApp {
                             p,
                             &Tele {
                                 arrow: None,
-                                label: "任务",
+                                label: tr("任务"),
                                 value: total.to_string(),
                                 unit: &act_txt,
                                 color: p.text,
@@ -589,7 +594,7 @@ impl QbApp {
                             p,
                             &Tele {
                                 arrow: Some(true),
-                                label: "上传",
+                                label: tr("上传"),
                                 value: uv,
                                 unit: &uu,
                                 color: if snap.transfer.up_info_speed > 0 {
@@ -612,7 +617,7 @@ impl QbApp {
                             p,
                             &Tele {
                                 arrow: Some(false),
-                                label: "下载",
+                                label: tr("下载"),
                                 value: dv,
                                 unit: &du,
                                 color: if snap.transfer.dl_info_speed > 0 {
@@ -656,7 +661,7 @@ impl QbApp {
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
                         // ---------- 状态 ----------
-                        w::section(ui, p, "状态");
+                        w::section(ui, p, tr("状态"));
                         for f in [
                             Filter::All,
                             Filter::Downloading,
@@ -675,8 +680,8 @@ impl QbApp {
                         }
 
                         // ---------- 分类 ----------
-                        w::section(ui, p, "分类");
-                        let r = w::nav_row(ui, p, "全部", None, self.sel_category.is_none());
+                        w::section(ui, p, tr("分类"));
+                        let r = w::nav_row(ui, p, tr("全部"), None, self.sel_category.is_none());
                         if r.clicked() || kb_activated(ui, &r) {
                             self.sel_category = None;
                         }
@@ -690,13 +695,13 @@ impl QbApp {
                         if snap.categories.is_empty() {
                             ui.add_space(2.0);
                             let _ = ui.label(
-                                RichText::new("（还没有分类）").font(th::id(11.0)).color(p.faint),
+                                RichText::new(tr("（还没有分类）")).font(th::id(11.0)).color(p.faint),
                             );
                         }
 
                         // ---------- 标签 ----------
-                        w::section(ui, p, "标签");
-                        let r = w::nav_row(ui, p, "全部", None, self.sel_tag.is_none());
+                        w::section(ui, p, tr("标签"));
+                        let r = w::nav_row(ui, p, tr("全部"), None, self.sel_tag.is_none());
                         if r.clicked() || kb_activated(ui, &r) {
                             self.sel_tag = None;
                         }
@@ -710,14 +715,14 @@ impl QbApp {
                         if snap.tags.is_empty() {
                             ui.add_space(2.0);
                             let _ = ui.label(
-                                RichText::new("（还没有标签）").font(th::id(11.0)).color(p.faint),
+                                RichText::new(tr("（还没有标签）")).font(th::id(11.0)).color(p.faint),
                             );
                         }
 
                         // ---------- 维护 ----------
-                        w::section(ui, p, "维护");
+                        w::section(ui, p, tr("维护"));
                         ui.add_space(th::S1);
-                        if ui.button("+ 新建分类").clicked() {
+                        if ui.button(tr("+ 新建分类")).clicked() {
                             self.show_new_category = true;
                         }
                         ui.add_space(th::S5);
@@ -780,7 +785,7 @@ impl QbApp {
                                 ui.label(RichText::new(line.as_str()).font(th::id(11.5)).color(p.faint));
                         } else {
                             let _ =
-                                ui.label(RichText::new("就绪").font(th::id(11.5)).color(p.faint));
+                                ui.label(RichText::new(tr("就绪")).font(th::id(11.5)).color(p.faint));
                         }
                     }
 
@@ -795,7 +800,7 @@ impl QbApp {
                                     .color(p.muted),
                             );
                             let _ = ui.label(
-                                RichText::new(w::spaced("刷新")).font(th::id_sb(9.0)).color(p.faint),
+                                RichText::new(w::spaced(tr("刷新"))).font(th::id_sb(9.0)).color(p.faint),
                             );
                             w::vsep(ui, p, 12.0);
                         }
@@ -807,9 +812,9 @@ impl QbApp {
                         );
                         w::vsep(ui, p, 12.0);
 
-                        stat_rtl(ui, p, "节点", &snap.transfer.dht_nodes.to_string());
-                        stat_rtl(ui, p, "选中", &self.selected.len().to_string());
-                        stat_rtl(ui, p, "任务", &snap.torrents.len().to_string());
+                        stat_rtl(ui, p, tr("节点"), &snap.transfer.dht_nodes.to_string());
+                        stat_rtl(ui, p, tr("选中"), &self.selected.len().to_string());
+                        stat_rtl(ui, p, tr("任务"), &snap.torrents.len().to_string());
                     });
                 });
             });
@@ -829,12 +834,12 @@ impl QbApp {
             // ---- 搜索 ----
             let search_ed = ui.add(
                 egui::TextEdit::singleline(&mut self.search)
-                    .hint_text("搜索名称 / 分类 / 标签 / hash")
+                    .hint_text(tr("搜索名称 / 分类 / 标签 / hash"))
                     .desired_width(230.0)
                     .font(th::id(12.5)),
             );
-            if !self.search.is_empty() && ghost_button(ui, p, "清除", 36.0)
-                .on_hover_text("清空搜索条件（Esc）")
+            if !self.search.is_empty() && ghost_button(ui, p, tr("清除"), 36.0)
+                .on_hover_text(tr("清空搜索条件（Esc）"))
                 .clicked()
             {
                 self.search.clear();
@@ -847,7 +852,7 @@ impl QbApp {
             w::vsep(ui, p, 22.0);
 
             // ---- 主操作 ----
-            if primary_button(ui, p, "+ 添加任务").clicked() {
+            if primary_button(ui, p, tr("+ 添加任务")).clicked() {
                 self.show_add = true;
             }
 
@@ -856,7 +861,7 @@ impl QbApp {
             if ui
                 .add_enabled(
                     on,
-                    egui::Button::new(RichText::new("暂停").font(th::id(12.5)))
+                    egui::Button::new(RichText::new(tr("暂停")).font(th::id(12.5)))
                         .min_size(vec2(50.0, bh)),
                 )
                 .clicked()
@@ -867,7 +872,7 @@ impl QbApp {
             if ui
                 .add_enabled(
                     on,
-                    egui::Button::new(RichText::new("恢复").font(th::id(12.5)))
+                    egui::Button::new(RichText::new(tr("恢复")).font(th::id(12.5)))
                         .min_size(vec2(50.0, bh)),
                 )
                 .clicked()
@@ -878,7 +883,7 @@ impl QbApp {
             if ui
                 .add_enabled(
                     on,
-                    egui::Button::new(RichText::new("删除").font(th::id(12.5)))
+                    egui::Button::new(RichText::new(tr("删除")).font(th::id(12.5)))
                         .min_size(vec2(50.0, bh)),
                 )
                 .clicked()
@@ -888,7 +893,7 @@ impl QbApp {
 
             if has_sel {
                 let _ = ui.label(
-                    RichText::new(format!("已选 {}", self.selected.len()))
+                    RichText::new(tf(tr("已选 {}"), &[&self.selected.len()]))
                         .font(th::id_num(11.0))
                         .color(p.accent),
                 );
@@ -899,19 +904,19 @@ impl QbApp {
                 ui.spacing_mut().item_spacing.x = th::S2;
 
                 if ui
-                    .add(egui::Button::new(RichText::new("连接设置").font(th::id(12.5))).min_size(vec2(0.0, bh)))
+                    .add(egui::Button::new(RichText::new(tr("连接设置")).font(th::id(12.5))).min_size(vec2(0.0, bh)))
                     .clicked()
                 {
                     self.show_settings = true;
                 }
-                if ghost_button(ui, p, "日志", 44.0).clicked() {
+                if ghost_button(ui, p, tr("日志"), 44.0).clicked() {
                     self.show_log = true;
                 }
                 w::vsep(ui, p, 22.0);
 
-                let theme_txt = if self.dark { "浅色" } else { "深色" };
+                let theme_txt = if self.dark { tr("浅色") } else { tr("深色") };
                 if ghost_button(ui, p, theme_txt, 48.0)
-                    .on_hover_text("切换深浅色主题")
+                    .on_hover_text(tr("切换深浅色主题"))
                     .clicked()
                 {
                     self.dark = !self.dark;
@@ -919,7 +924,7 @@ impl QbApp {
                 }
 
                 if ui
-                    .add(egui::Button::new(RichText::new("限速").font(th::id(12.5))).min_size(vec2(44.0, bh)))
+                    .add(egui::Button::new(RichText::new(tr("限速")).font(th::id(12.5))).min_size(vec2(44.0, bh)))
                     .clicked()
                 {
                     self.lim_dl = bytes_to_kib(snap.global_dl_limit);
@@ -948,8 +953,8 @@ impl QbApp {
                     self.show_limits = true;
                 }
 
-                if toggle_button(ui, p, "备用限速", snap.alt_speed, 0.0)
-                    .on_hover_text("临时切换到备用限速方案")
+                if toggle_button(ui, p, tr("备用限速"), snap.alt_speed, 0.0)
+                    .on_hover_text(tr("临时切换到备用限速方案"))
                     .clicked()
                 {
                     self.worker.send(Cmd::ToggleAltSpeed);
@@ -958,7 +963,7 @@ impl QbApp {
                 if connected
                     && ui
                         .add(
-                            egui::Button::new(RichText::new("断开").font(th::id(12.5)))
+                            egui::Button::new(RichText::new(tr("断开")).font(th::id(12.5)))
                                 .min_size(vec2(44.0, bh)),
                         )
                         .clicked()
@@ -974,16 +979,16 @@ impl QbApp {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = th::S2;
                 let _ = ui.label(
-                    RichText::new(w::spaced("批量"))
+                    RichText::new(w::spaced(tr("批量")))
                         .font(th::id_sb(9.0))
                         .color(p.faint),
                 );
 
                 egui::ComboBox::from_id_salt("bulk_cat")
-                    .selected_text(RichText::new("设为分类…").font(th::id(12.0)))
+                    .selected_text(RichText::new(tr("设为分类…")).font(th::id(12.0)))
                     .width(126.0)
                     .show_ui(ui, |ui| {
-                        if ui.selectable_label(false, "（清空分类）").clicked() {
+                        if ui.selectable_label(false, tr("（清空分类）")).clicked() {
                             let h = self.targets();
                             self.worker.send(Cmd::SetCategory {
                                 hashes: h,
@@ -1004,10 +1009,10 @@ impl QbApp {
                 ui.add(
                     egui::TextEdit::singleline(&mut self.bulk_tag)
                         .desired_width(96.0)
-                        .hint_text("标签名")
+                        .hint_text(tr("标签名"))
                         .font(th::id(12.0)),
                 );
-                if ui.button("+ 打标签").clicked() {
+                if ui.button(tr("+ 打标签")).clicked() {
                     let t = self.bulk_tag.trim().to_string();
                     if !t.is_empty() {
                         let h = self.targets();
@@ -1016,12 +1021,12 @@ impl QbApp {
                     }
                 }
                 w::vsep(ui, p, 18.0);
-                if ghost_button(ui, p, "全选", 44.0).clicked() {
+                if ghost_button(ui, p, tr("全选"), 44.0).clicked() {
                     for x in snap.torrents.iter() {
                         self.selected.insert(x.hash.clone());
                     }
                 }
-                if ghost_button(ui, p, "取消选择", 60.0).clicked() {
+                if ghost_button(ui, p, tr("取消选择"), 60.0).clicked() {
                     self.selected.clear();
                 }
             });
@@ -1063,9 +1068,9 @@ impl QbApp {
         painter.circle_filled(box_rect.center(), 3.5, p.accent);
 
         let msg = if snap.torrents.is_empty() {
-            "还没有任务"
+            tr("还没有任务")
         } else {
-            "当前筛选条件下没有任务"
+            tr("当前筛选条件下没有任务")
         };
         painter.text(
             pos2(c.x, c.y + 14.0),
@@ -1078,9 +1083,9 @@ impl QbApp {
             pos2(c.x, c.y + 36.0),
             Align2::CENTER_CENTER,
             if snap.torrents.is_empty() {
-                "点工具条上的「+ 添加任务」，提交 magnet 链接或 .torrent 文件"
+                tr("点工具条上的「+ 添加任务」，提交 magnet 链接或 .torrent 文件")
             } else {
-                "试着放宽左侧筛选，或清空搜索框"
+                tr("试着放宽左侧筛选，或清空搜索框")
             },
             th::id(11.0),
             p.faint,
@@ -1188,25 +1193,25 @@ impl QbApp {
                     .column(Column::initial(134.0).at_least(70.0).clip(true))
                     .header(th::HEADER_H, |mut header| {
                         header.col(|ui| header_cell_bg(ui, p));
-                        sortable_header(&mut header, "名称", SortKey::Name, sk, sd, &new_sort, p);
-                        sortable_header(&mut header, "大小", SortKey::Size, sk, sd, &new_sort, p);
+                        sortable_header(&mut header, tr("名称"), SortKey::Name, sk, sd, &new_sort, p);
+                        sortable_header(&mut header, tr("大小"), SortKey::Size, sk, sd, &new_sort, p);
                         sortable_header(
                             &mut header,
-                            "进度",
+                            tr("进度"),
                             SortKey::Progress,
                             sk,
                             sd,
                             &new_sort,
                             p,
                         );
-                        sortable_header(&mut header, "状态", SortKey::State, sk, sd, &new_sort, p);
-                        sortable_header(&mut header, "下载", SortKey::DlSpeed, sk, sd, &new_sort, p);
-                        sortable_header(&mut header, "上传", SortKey::UpSpeed, sk, sd, &new_sort, p);
-                        sortable_header(&mut header, "分享率", SortKey::Ratio, sk, sd, &new_sort, p);
-                        sortable_header(&mut header, "剩余", SortKey::Eta, sk, sd, &new_sort, p);
+                        sortable_header(&mut header, tr("状态"), SortKey::State, sk, sd, &new_sort, p);
+                        sortable_header(&mut header, tr("下载"), SortKey::DlSpeed, sk, sd, &new_sort, p);
+                        sortable_header(&mut header, tr("上传"), SortKey::UpSpeed, sk, sd, &new_sort, p);
+                        sortable_header(&mut header, tr("分享率"), SortKey::Ratio, sk, sd, &new_sort, p);
+                        sortable_header(&mut header, tr("剩余"), SortKey::Eta, sk, sd, &new_sort, p);
                         sortable_header(
                             &mut header,
-                            "分类",
+                            tr("分类"),
                             SortKey::Category,
                             sk,
                             sd,
@@ -1216,7 +1221,7 @@ impl QbApp {
                         header.col(|ui| {
                             header_cell_bg(ui, p);
                             let _ = ui.label(
-                                RichText::new(w::spaced("标签"))
+                                RichText::new(w::spaced(tr("标签")))
                                     .font(th::id_sb(10.0))
                                     .color(p.faint),
                             );
@@ -1248,10 +1253,7 @@ impl QbApp {
                                         .truncate()
                                         .selectable(false),
                                     )
-                                    .on_hover_text(format!(
-                                        "{}\n保存路径：{}\nhash：{}",
-                                        t.name, t.save_path, t.hash
-                                    ));
+                                    .on_hover_text(tf(tr("{}\n保存路径：{}\nhash：{}"), &[&t.name, &t.save_path, &t.hash]));
                             });
 
                             // 大小
@@ -1373,26 +1375,26 @@ impl QbApp {
                             resp.context_menu(|ui| {
                                 ui.label(RichText::new(t.name.as_str()).font(th::id_sb(12.5)));
                                 ui.separator();
-                                if ui.button("详情").clicked() {
+                                if ui.button(tr("详情")).clicked() {
                                     actions.borrow_mut().push(Action::OpenDetail(hash.clone()));
                                     ui.close_menu();
                                 }
-                                if ui.button("暂停").clicked() {
+                                if ui.button(tr("暂停")).clicked() {
                                     actions.borrow_mut().push(Action::Pause(vec![hash.clone()]));
                                     ui.close_menu();
                                 }
-                                if ui.button("恢复").clicked() {
+                                if ui.button(tr("恢复")).clicked() {
                                     actions.borrow_mut().push(Action::Resume(vec![hash.clone()]));
                                     ui.close_menu();
                                 }
-                                if ui.button("强制开始 开 / 关").clicked() {
+                                if ui.button(tr("强制开始 开 / 关")).clicked() {
                                     actions.borrow_mut().push(Action::ForceStart(
                                         vec![hash.clone()],
                                         !t.force_start,
                                     ));
                                     ui.close_menu();
                                 }
-                                if ui.button("顺序下载 开 / 关").clicked() {
+                                if ui.button(tr("顺序下载 开 / 关")).clicked() {
                                     actions.borrow_mut().push(Action::Sequential(
                                         vec![hash.clone()],
                                         !t.seq_dl,
@@ -1405,12 +1407,12 @@ impl QbApp {
                                 let cur_cat = t.category.clone();
                                 ui.menu_button(
                                     if cur_cat.is_empty() {
-                                        "设为分类".to_string()
+                                        tr("设为分类").to_string()
                                     } else {
-                                        format!("设为分类（当前：{}）", cur_cat)
+                                        tf(tr("设为分类（当前：{}）"), &[&cur_cat])
                                     },
                                     |ui| {
-                                        if ui.button("（清空分类）").clicked() {
+                                        if ui.button(tr("（清空分类）")).clicked() {
                                             actions.borrow_mut().push(Action::SetCategory(
                                                 vec![hash.clone()],
                                                 String::new(),
@@ -1428,17 +1430,17 @@ impl QbApp {
                                             }
                                         }
                                         if cats.is_empty() {
-                                            ui.weak("（还没有分类）");
+                                            ui.weak(tr("（还没有分类）"));
                                         }
                                     },
                                 );
 
                                 let cur_tags = t.tag_list();
-                                ui.menu_button("标签", |ui| {
+                                ui.menu_button(tr("标签"), |ui| {
                                     if cur_tags.is_empty() {
-                                        ui.weak("（该任务还没有标签）");
+                                        ui.weak(tr("（该任务还没有标签）"));
                                     } else {
-                                        ui.label(RichText::new("点击移除：").font(th::id(11.0)));
+                                        ui.label(RichText::new(tr("点击移除：")).font(th::id(11.0)));
                                         for g in &cur_tags {
                                             if ui.button(format!("− {}", g)).clicked() {
                                                 actions.borrow_mut().push(Action::RemoveTags(
@@ -1450,7 +1452,7 @@ impl QbApp {
                                         }
                                     }
                                     ui.separator();
-                                    ui.label(RichText::new("点击添加：").font(th::id(11.0)));
+                                    ui.label(RichText::new(tr("点击添加：")).font(th::id(11.0)));
                                     let mut any = false;
                                     for g in all_tags {
                                         if cur_tags.contains(&g.as_str()) {
@@ -1466,16 +1468,16 @@ impl QbApp {
                                         }
                                     }
                                     if !any {
-                                        ui.weak("（没有可添加的标签）");
+                                        ui.weak(tr("（没有可添加的标签）"));
                                     }
                                 });
 
-                                if ui.button("复制 hash").clicked() {
+                                if ui.button(tr("复制 hash")).clicked() {
                                     ui.output_mut(|o| o.copied_text = hash.clone());
                                     actions.borrow_mut().push(Action::CopyHash(hash.clone()));
                                     ui.close_menu();
                                 }
-                                if ui.button("移动保存路径…").clicked() {
+                                if ui.button(tr("移动保存路径…")).clicked() {
                                     actions.borrow_mut().push(Action::MoveTo(
                                         vec![hash.clone()],
                                         t.save_path.clone(),
@@ -1484,18 +1486,18 @@ impl QbApp {
                                 }
 
                                 ui.separator();
-                                if ui.button("重新校验").clicked() {
+                                if ui.button(tr("重新校验")).clicked() {
                                     actions.borrow_mut().push(Action::Recheck(vec![hash.clone()]));
                                     ui.close_menu();
                                 }
-                                if ui.button("重新汇报 Tracker").clicked() {
+                                if ui.button(tr("重新汇报 Tracker")).clicked() {
                                     actions
                                         .borrow_mut()
                                         .push(Action::Reannounce(vec![hash.clone()]));
                                     ui.close_menu();
                                 }
                                 ui.separator();
-                                if ui.button("删除…").clicked() {
+                                if ui.button(tr("删除…")).clicked() {
                                     actions.borrow_mut().push(Action::Delete(vec![hash.clone()]));
                                     ui.close_menu();
                                 }
@@ -1555,7 +1557,7 @@ impl QbApp {
             }
             Action::CopyHash(h) => {
                 // 真正的写剪贴板在右键菜单里做（那里才有 ui），这里只给个反馈
-                self.toast_ok(format!("已复制 hash：{}", h));
+                self.toast_ok(tf(tr("已复制 hash：{}"), &[&h]));
             }
         }
     }
@@ -1587,14 +1589,14 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-settings",
-                title: "连接设置",
-                subtitle: Some("直连 qBittorrent 的 WebUI，配置存在本地 JSON 里"),
+                title: tr("连接设置"),
+                subtitle: Some(tr("直连 qBittorrent 的 WebUI，配置存在本地 JSON 里")),
                 size: [470.0, 0.0],
                 resizable: false,
             },
             |ui| {
                 ui.label(
-                    RichText::new("服务器")
+                    RichText::new(tr("服务器"))
                         .font(th::id_sb(11.0))
                         .color(p.faint),
                 );
@@ -1603,23 +1605,23 @@ impl QbApp {
                     .num_columns(2)
                     .spacing([14.0, 9.0])
                     .show(ui, |ui| {
-                        ui.label("主机 / IP");
+                        ui.label(tr("主机 / IP"));
                         ui.add(
                             egui::TextEdit::singleline(&mut self.cfg.host).desired_width(240.0),
                         );
                         ui.end_row();
 
-                        ui.label("端口");
+                        ui.label(tr("端口"));
                         ui.add(egui::DragValue::new(&mut self.cfg.port).range(1..=65535));
                         ui.end_row();
 
-                        ui.label("用户名");
+                        ui.label(tr("用户名"));
                         ui.add(
                             egui::TextEdit::singleline(&mut self.cfg.username).desired_width(240.0),
                         );
                         ui.end_row();
 
-                        ui.label("密码");
+                        ui.label(tr("密码"));
                         ui.add(
                             egui::TextEdit::singleline(&mut self.cfg.password)
                                 .password(true)
@@ -1627,28 +1629,28 @@ impl QbApp {
                         );
                         ui.end_row();
 
-                        ui.label("轮询间隔");
+                        ui.label(tr("轮询间隔"));
                         ui.horizontal(|ui| {
                             ui.add(egui::DragValue::new(&mut self.cfg.refresh_secs).range(1..=60));
-                            ui.label("秒");
+                            ui.label(tr("秒"));
                         });
                         ui.end_row();
                     });
 
                 ui.add_space(10.0);
                 ui.label(
-                    RichText::new("行为")
+                    RichText::new(tr("行为"))
                         .font(th::id_sb(11.0))
                         .color(p.faint),
                 );
                 ui.add_space(2.0);
-                ui.checkbox(&mut self.cfg.use_https, "使用 HTTPS");
-                ui.checkbox(&mut self.cfg.ignore_cert, "忽略证书校验（自签名证书）");
-                ui.checkbox(&mut self.cfg.auto_connect, "启动时自动连接");
+                ui.checkbox(&mut self.cfg.use_https, tr("使用 HTTPS"));
+                ui.checkbox(&mut self.cfg.ignore_cert, tr("忽略证书校验（自签名证书）"));
+                ui.checkbox(&mut self.cfg.auto_connect, tr("启动时自动连接"));
 
                 ui.add_space(10.0);
                 ui.label(
-                    RichText::new("显示")
+                    RichText::new(tr("显示"))
                         .font(th::id_sb(11.0))
                         .color(p.faint),
                 );
@@ -1663,7 +1665,7 @@ impl QbApp {
                 // 一屏能塞下的行数还是偏多，这时候用户需要一个自己的旋钮，
                 // 而不是被迫去改整个系统的缩放（那会连带影响别的软件）。
                 ui.horizontal(|ui| {
-                    ui.label("界面缩放");
+                    ui.label(tr("界面缩放"));
                     let z = ctx.zoom_factor();
                     if ghost_button(ui, p, "－", 0.0).clicked() {
                         ctx.set_zoom_factor((z - 0.05).max(0.7));
@@ -1676,7 +1678,7 @@ impl QbApp {
                     if ghost_button(ui, p, "＋", 0.0).clicked() {
                         ctx.set_zoom_factor((z + 0.05).min(2.0));
                     }
-                    if ghost_button(ui, p, "重置", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("重置"), 0.0).clicked() {
                         ctx.set_zoom_factor(1.0);
                     }
                     ui.label(
@@ -1688,25 +1690,25 @@ impl QbApp {
 
                 ui.add_space(10.0);
                 ui.label(
-                    RichText::new(format!("配置文件：{}", Config::config_path().display()))
+                    RichText::new(tf(tr("配置文件：{}"), &[&Config::config_path().display()]))
                         .font(th::id(10.5))
                         .color(p.faint),
                 );
                 ui.label(
-                    RichText::new("注意：密码以明文保存在该文件中。")
+                    RichText::new(tr("注意：密码以明文保存在该文件中。"))
                         .font(th::id(10.5))
                         .color(p.warn),
                 );
 
                 w::dialog_footer(ui, p, |ui| {
-                    if primary_button(ui, p, "保存并连接").clicked() {
+                    if primary_button(ui, p, tr("保存并连接")).clicked() {
                         do_save = true;
                         do_connect = true;
                     }
-                    if ghost_button(ui, p, "仅保存", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("仅保存"), 0.0).clicked() {
                         do_save = true;
                     }
-                    if ghost_button(ui, p, "取消", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("取消"), 0.0).clicked() {
                         close = true;
                     }
                 });
@@ -1716,12 +1718,12 @@ impl QbApp {
         if do_save {
             match self.cfg.save() {
                 Ok(_) => {
-                    self.toast_ok("配置已保存");
+                    self.toast_ok(tr("配置已保存"));
                     // 轮询间隔可能改了，通知网络线程立即生效。
                     // 这里只更新间隔、不重连 —— 用户改个数字不该把会话踢掉。
                     self.worker.send(Cmd::UpdateRefresh(self.cfg.refresh_secs));
                 }
-                Err(e) => self.toast_err(format!("保存配置失败：{}", e)),
+                Err(e) => self.toast_err(tf(tr("保存配置失败：{}"), &[&e])),
             }
         }
         if do_connect {
@@ -1744,8 +1746,8 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-add",
-                title: "添加任务",
-                subtitle: Some("magnet / .torrent URL / 本地种子文件"),
+                title: tr("添加任务"),
+                subtitle: Some(tr("magnet / .torrent URL / 本地种子文件")),
                 size: [640.0, 0.0],
                 resizable: false,
             },
@@ -1754,32 +1756,32 @@ impl QbApp {
                     egui::TextEdit::multiline(&mut self.add_urls)
                         .desired_rows(6)
                         .desired_width(f32::INFINITY)
-                        .hint_text("每行一个：magnet:?xt=urn:btih:…  或  https://…/x.torrent"),
+                        .hint_text(tr("每行一个：magnet:?xt=urn:btih:…  或  https://…/x.torrent")),
                 );
 
                 ui.add_space(6.0);
-                if ghost_button(ui, p, "从本地选择 .torrent 文件并添加…", 0.0).clicked() {
+                if ghost_button(ui, p, tr("从本地选择 .torrent 文件并添加…"), 0.0).clicked() {
                     pick = true;
                 }
 
                 ui.add_space(10.0);
-                ui.label(RichText::new("选项").font(th::id_sb(11.0)).color(p.faint));
+                ui.label(RichText::new(tr("选项")).font(th::id_sb(11.0)).color(p.faint));
                 ui.add_space(2.0);
                 egui::Grid::new("add_grid")
                     .num_columns(2)
                     .spacing([14.0, 9.0])
                     .show(ui, |ui| {
-                        ui.label("保存路径");
+                        ui.label(tr("保存路径"));
                         ui.add(
                             egui::TextEdit::singleline(&mut self.add_savepath)
                                 .desired_width(360.0)
-                                .hint_text("留空 = 使用 qB 默认 / 分类目录"),
+                                .hint_text(tr("留空 = 使用 qB 默认 / 分类目录")),
                         );
                         ui.end_row();
 
-                        ui.label("分类");
+                        ui.label(tr("分类"));
                         let cat_text = if self.add_category.is_empty() {
-                            "（无）".to_string()
+                            tr("（无）").to_string()
                         } else {
                             self.add_category.clone()
                         };
@@ -1790,7 +1792,7 @@ impl QbApp {
                                 ui.selectable_value(
                                     &mut self.add_category,
                                     String::new(),
-                                    "（无）",
+                                    tr("（无）"),
                                 );
                                 for c in &snap.categories {
                                     ui.selectable_value(
@@ -1802,26 +1804,26 @@ impl QbApp {
                             });
                         ui.end_row();
 
-                        ui.label("标签");
+                        ui.label(tr("标签"));
                         ui.add(
                             egui::TextEdit::singleline(&mut self.add_tags)
                                 .desired_width(360.0)
-                                .hint_text("逗号分隔，如：电影, 1080p"),
+                                .hint_text(tr("逗号分隔，如：电影, 1080p")),
                         );
                         ui.end_row();
                     });
 
                 ui.add_space(6.0);
-                ui.checkbox(&mut self.add_paused, "添加后暂停");
-                ui.checkbox(&mut self.add_sequential, "顺序下载");
+                ui.checkbox(&mut self.add_paused, tr("添加后暂停"));
+                ui.checkbox(&mut self.add_sequential, tr("顺序下载"));
 
                 w::dialog_footer(ui, p, |ui| {
                     // 不置灰：置灰的按钮说不出"为什么不能点"。留可点，
                     // 空输入时由下面的校验给出明确提示（toast）。
-                    if primary_button(ui, p, "提交").clicked() {
+                    if primary_button(ui, p, tr("提交")).clicked() {
                         submit = true;
                     }
-                    if ghost_button(ui, p, "取消", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("取消"), 0.0).clicked() {
                         close = true;
                     }
                 });
@@ -1838,14 +1840,14 @@ impl QbApp {
                 self.add_urls.clear();
                 close = true;
             } else {
-                self.toast_err("请先填入 magnet 链接或 URL");
+                self.toast_err(tr("请先填入 magnet 链接或 URL"));
             }
         }
 
         if pick {
             if let Some(path) = rfd::FileDialog::new()
-                .add_filter("BitTorrent 种子", &["torrent"])
-                .set_title("选择 .torrent 文件")
+                .add_filter(tr("BitTorrent 种子"), &["torrent"])
+                .set_title(tr("选择 .torrent 文件"))
                 .pick_file()
             {
                 match std::fs::read(&path) {
@@ -1861,7 +1863,7 @@ impl QbApp {
                         });
                         close = true;
                     }
-                    Err(e) => self.toast_err(format!("读取种子文件失败：{}", e)),
+                    Err(e) => self.toast_err(tf(tr("读取种子文件失败：{}"), &[&e])),
                 }
             }
         }
@@ -1896,14 +1898,14 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-delete",
-                title: "删除任务",
-                subtitle: Some("qBittorrent 侧的删除不可撤销，请确认范围"),
+                title: tr("删除任务"),
+                subtitle: Some(tr("qBittorrent 侧的删除不可撤销，请确认范围")),
                 size: [480.0, 0.0],
                 resizable: false,
             },
             |ui| {
                 ui.label(
-                    RichText::new(format!("即将删除 {} 个任务", n))
+                    RichText::new(tf(tr("即将删除 {} 个任务"), &[&n]))
                         .font(th::id_sb(13.0))
                         .color(p.err),
                 );
@@ -1913,25 +1915,25 @@ impl QbApp {
                 }
                 if n > names.len() {
                     ui.label(
-                        RichText::new(format!("… 以及另外 {} 个", n - names.len()))
+                        RichText::new(tf(tr("… 以及另外 {} 个"), &[&(n - names.len())]))
                             .font(th::id(11.5))
                             .color(p.faint),
                     );
                 }
 
                 ui.add_space(10.0);
-                ui.checkbox(&mut self.del_files, "同时删除已下载的数据文件（不可恢复）");
+                ui.checkbox(&mut self.del_files, tr("同时删除已下载的数据文件（不可恢复）"));
 
                 w::dialog_footer(ui, p, |ui| {
                     let label = if self.del_files {
-                        "删除任务与数据"
+                        tr("删除任务与数据")
                     } else {
-                        "仅删除任务"
+                        tr("仅删除任务")
                     };
                     if danger_button(ui, p, label).clicked() {
                         confirm = true;
                     }
-                    if ghost_button(ui, p, "取消", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("取消"), 0.0).clicked() {
                         close = true;
                     }
                 });
@@ -1964,15 +1966,15 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-limits",
-                title: "限速",
-                subtitle: Some("单位 KiB/s；0 = 不限，-1 = 跟随全局"),
+                title: tr("限速"),
+                subtitle: Some(tr("单位 KiB/s；0 = 不限，-1 = 跟随全局")),
                 size: [440.0, 0.0],
                 resizable: false,
             },
             |ui| {
                 // ---- 全局 ----
                 ui.label(
-                    RichText::new("全局限速")
+                    RichText::new(tr("全局限速"))
                         .font(th::id_sb(11.0))
                         .color(p.faint),
                 );
@@ -1980,38 +1982,26 @@ impl QbApp {
                     .num_columns(2)
                     .spacing([14.0, 9.0])
                     .show(ui, |ui| {
-                        ui.label("下载");
+                        ui.label(tr("下载"));
                         ui.add(egui::DragValue::new(&mut self.lim_dl).range(0..=10_485_760));
                         ui.end_row();
-                        ui.label("上传");
+                        ui.label(tr("上传"));
                         ui.add(egui::DragValue::new(&mut self.lim_up).range(0..=10_485_760));
                         ui.end_row();
                     });
                 ui.add_space(6.0);
                 ui.horizontal(|ui| {
-                    if primary_button(ui, p, "应用").clicked() {
+                    if primary_button(ui, p, tr("应用")).clicked() {
                         apply_global = true;
                     }
-                    if ghost_button(ui, p, "解除", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("解除"), 0.0).clicked() {
                         self.lim_dl = 0;
                         self.lim_up = 0;
                         apply_global = true;
                     }
                     ui.add_space(6.0);
                     ui.label(
-                        RichText::new(format!(
-                            "当前 ↓ {}   ↑ {}",
-                            if snap.global_dl_limit <= 0 {
-                                "不限".to_string()
-                            } else {
-                                fmt_speed(snap.global_dl_limit)
-                            },
-                            if snap.global_up_limit <= 0 {
-                                "不限".to_string()
-                            } else {
-                                fmt_speed(snap.global_up_limit)
-                            }
-                        ))
+                        RichText::new(tf(tr("当前 ↓ {}   ↑ {}"), &[&if snap.global_dl_limit <= 0 { tr("不限").to_string() } else { fmt_speed(snap.global_dl_limit) }, &if snap.global_up_limit <= 0 { tr("不限").to_string() } else { fmt_speed(snap.global_up_limit) }]))
                         .font(th::id_num(11.0))
                         .color(p.muted),
                     );
@@ -2022,7 +2012,7 @@ impl QbApp {
                 w::hairline(ui, p);
                 ui.add_space(10.0);
                 ui.label(
-                    RichText::new(format!("选中任务的独立限速（{} 个）", hashes.len()))
+                    RichText::new(tf(tr("选中任务的独立限速（{} 个）"), &[&hashes.len()]))
                         .font(th::id_sb(11.0))
                         .color(p.faint),
                 );
@@ -2030,22 +2020,22 @@ impl QbApp {
                     .num_columns(2)
                     .spacing([14.0, 9.0])
                     .show(ui, |ui| {
-                        ui.label("下载");
+                        ui.label(tr("下载"));
                         ui.add(egui::DragValue::new(&mut self.lim_torrent_dl).range(-1..=10_485_760));
                         ui.end_row();
-                        ui.label("上传");
+                        ui.label(tr("上传"));
                         ui.add(egui::DragValue::new(&mut self.lim_torrent_up).range(-1..=10_485_760));
                         ui.end_row();
                     });
 
                 w::dialog_footer(ui, p, |ui| {
                     let en = !hashes.is_empty();
-                    if en && primary_button(ui, p, "应用到选中任务").clicked() {
+                    if en && primary_button(ui, p, tr("应用到选中任务")).clicked() {
                         apply_torrent = true;
                     } else if !en {
-                        ghost_button(ui, p, "应用到选中任务", 0.0);
+                        ghost_button(ui, p, tr("应用到选中任务"), 0.0);
                     }
-                    if ghost_button(ui, p, "关闭", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("关闭"), 0.0).clicked() {
                         close = true;
                     }
                 });
@@ -2081,8 +2071,8 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-log",
-                title: "操作日志",
-                subtitle: Some("只保留最近 150 条，重启即清空"),
+                title: tr("操作日志"),
+                subtitle: Some(tr("只保留最近 150 条，重启即清空")),
                 size: [720.0, 460.0],
                 resizable: true,
             },
@@ -2094,7 +2084,7 @@ impl QbApp {
                     .show(ui, |ui| {
                         if snap.log.is_empty() {
                             ui.label(
-                                RichText::new("（暂无日志）")
+                                RichText::new(tr("（暂无日志）"))
                                     .font(th::id(12.0))
                                     .color(p.faint),
                             );
@@ -2109,15 +2099,15 @@ impl QbApp {
                     });
 
                 w::dialog_footer(ui, p, |ui| {
-                    if ghost_button(ui, p, "关闭", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("关闭"), 0.0).clicked() {
                         close = true;
                     }
-                    if ghost_button(ui, p, "刷新", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("刷新"), 0.0).clicked() {
                         refresh = true;
                     }
                     ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                         ui.label(
-                            RichText::new(format!("共 {} 条", snap.log.len()))
+                            RichText::new(tf(tr("共 {} 条"), &[&snap.log.len()]))
                                 .font(th::id_num(11.0))
                                 .color(p.faint),
                         );
@@ -2145,8 +2135,8 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-newcat",
-                title: "新建分类",
-                subtitle: Some("分类可以绑定独立的保存目录"),
+                title: tr("新建分类"),
+                subtitle: Some(tr("分类可以绑定独立的保存目录")),
                 size: [440.0, 0.0],
                 resizable: false,
             },
@@ -2155,29 +2145,29 @@ impl QbApp {
                     .num_columns(2)
                     .spacing([14.0, 9.0])
                     .show(ui, |ui| {
-                        ui.label("名称");
+                        ui.label(tr("名称"));
                         ui.add(
                             egui::TextEdit::singleline(&mut self.new_cat_name)
                                 .desired_width(260.0),
                         );
                         ui.end_row();
-                        ui.label("保存路径");
+                        ui.label(tr("保存路径"));
                         ui.add(
                             egui::TextEdit::singleline(&mut self.new_cat_path)
                                 .desired_width(260.0)
-                                .hint_text("留空 = 使用默认下载目录"),
+                                .hint_text(tr("留空 = 使用默认下载目录")),
                         );
                         ui.end_row();
                     });
 
                 w::dialog_footer(ui, p, |ui| {
                     let en = !self.new_cat_name.trim().is_empty();
-                    if en && primary_button(ui, p, "创建").clicked() {
+                    if en && primary_button(ui, p, tr("创建")).clicked() {
                         submit = true;
                     } else if !en {
-                        ghost_button(ui, p, "创建", 0.0);
+                        ghost_button(ui, p, tr("创建"), 0.0);
                     }
-                    if ghost_button(ui, p, "取消", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("取消"), 0.0).clicked() {
                         close = true;
                     }
                 });
@@ -2225,42 +2215,42 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-move",
-                title: "移动保存路径",
-                subtitle: Some("qB 会把已下载的数据文件一并搬到新目录"),
+                title: tr("移动保存路径"),
+                subtitle: Some(tr("qB 会把已下载的数据文件一并搬到新目录")),
                 size: [560.0, 0.0],
                 resizable: false,
             },
             |ui| {
                 ui.label(
-                    RichText::new(format!("将移动 {} 个任务。", n))
+                    RichText::new(tf(tr("将移动 {} 个任务。"), &[&n]))
                         .font(th::id(12.0))
                         .color(p.muted),
                 );
                 if let Some(c) = &cur_path {
                     ui.label(
-                        RichText::new(format!("当前：{}", c))
+                        RichText::new(tf(tr("当前：{}"), &[&c]))
                             .font(th::id_mono(11.0))
                             .color(p.faint),
                     );
                 }
 
                 ui.add_space(8.0);
-                ui.label("目标路径");
+                ui.label(tr("目标路径"));
                 ui.add_space(2.0);
                 ui.add(
                     egui::TextEdit::singleline(&mut self.move_path)
                         .desired_width(f32::INFINITY)
-                        .hint_text("/downloads/new  或  D:\\下载\\new"),
+                        .hint_text(tr("/downloads/new  或  D:\\下载\\new")),
                 );
 
                 w::dialog_footer(ui, p, |ui| {
                     let en = n > 0 && !self.move_path.trim().is_empty();
-                    if en && primary_button(ui, p, "移动").clicked() {
+                    if en && primary_button(ui, p, tr("移动")).clicked() {
                         confirm = true;
                     } else if !en {
-                        ghost_button(ui, p, "移动", 0.0);
+                        ghost_button(ui, p, tr("移动"), 0.0);
                     }
-                    if ghost_button(ui, p, "取消", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("取消"), 0.0).clicked() {
                         close = true;
                     }
                 });
@@ -2321,7 +2311,7 @@ impl QbApp {
             p,
             w::DialogSpec {
                 id: "dlg-detail",
-                title: "任务详情",
+                title: tr("任务详情"),
                 subtitle: Some(t.name.as_str()),
                 size: [980.0, 640.0],
                 resizable: true,
@@ -2343,7 +2333,7 @@ impl QbApp {
                         ui.spinner();
                         ui.add_space(8.0);
                         ui.label(
-                            RichText::new("正在拉取任务详情…")
+                            RichText::new(tr("正在拉取任务详情…"))
                                 .font(th::id(12.0))
                                 .color(p.faint),
                         );
@@ -2359,10 +2349,10 @@ impl QbApp {
                 }
 
                 w::dialog_footer(ui, p, |ui| {
-                    if ghost_button(ui, p, "关闭", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("关闭"), 0.0).clicked() {
                         close = true;
                     }
-                    if ghost_button(ui, p, "刷新", 0.0).clicked() {
+                    if ghost_button(ui, p, tr("刷新"), 0.0).clicked() {
                         refresh = true;
                     }
                     // 靠左：状态 / 错误 / 更新时间
@@ -2370,7 +2360,7 @@ impl QbApp {
                         if d.loading {
                             ui.spinner();
                             ui.label(
-                                RichText::new("拉取中…").font(th::id(11.0)).color(p.faint),
+                                RichText::new(tr("拉取中…")).font(th::id(11.0)).color(p.faint),
                             );
                         } else if let Some(e) = &d.error {
                             ui.label(
@@ -2381,9 +2371,9 @@ impl QbApp {
                         } else if let Some(at) = d.at {
                             let s = at.elapsed().as_secs();
                             let txt = if s < 3 {
-                                "刚刚更新".to_string()
+                                tr("刚刚更新").to_string()
                             } else {
-                                format!("{} 秒前更新", s)
+                                tf(tr("{} 秒前更新"), &[&s])
                             };
                             ui.label(
                                 RichText::new(txt)
@@ -2515,6 +2505,9 @@ impl eframe::App for QbApp {
 
         let p = self.p;
         let snap = self.snapshot();
+
+        // 同步当前语言（跟随 WebUI locale）：之后所有 `tr()` 都按它返回
+        i18n::set_lang(snap.lang);
 
         // 氛围层走 Order::Background，必须最先画（中央面板是透明的，网格从底下透出来）
         w::backdrop(ctx, p);
@@ -2833,9 +2826,9 @@ fn sortable_header(
 
 fn conn_status_cn(s: &str) -> String {
     match s {
-        "connected" => "连接正常".to_string(),
-        "firewalled" => "受防火墙限制".to_string(),
-        "disconnected" => "未连接".to_string(),
+        "connected" => tr("连接正常").to_string(),
+        "firewalled" => tr("受防火墙限制").to_string(),
+        "disconnected" => tr("未连接").to_string(),
         "" => "-".to_string(),
         other => other.to_string(),
     }
@@ -2902,9 +2895,9 @@ fn dash_if_empty(s: &str) -> String {
 /// 单任务限速的三态：`-1` 跟随全局、`0` 不限、`>0` 具体值。
 fn limit_cn(v: i64) -> String {
     if v < 0 {
-        "跟随全局".to_string()
+        tr("跟随全局").to_string()
     } else if v == 0 {
-        "不限".to_string()
+        tr("不限").to_string()
     } else {
         fmt_speed(v)
     }
@@ -2965,69 +2958,58 @@ fn detail_general(ui: &mut egui::Ui, p: &Palette, t: &Torrent, pr: Option<&Torre
         Some(x) if !x.save_path.is_empty() => x.save_path.clone(),
         _ => t.save_path.clone(),
     };
-    let pieces = pp!(pr, pieces, |x: &TorrentProperties| format!(
-        "{} × {}（已有 {}）",
-        x.pieces_num,
-        fmt_size(x.piece_size),
-        x.pieces_have
-    ));
+    let pieces = pp!(pr, pieces, |x: &TorrentProperties| tf(tr("{} × {}（已有 {}）"), &[&x.pieces_num, &fmt_size(x.piece_size), &x.pieces_have]));
     let conn = pp!(pr, nb_connections, |x: &TorrentProperties| format!(
         "{} / {}",
         x.nb_connections,
         if x.nb_connections_limit < 0 {
-            "不限".to_string()
+            tr("不限").to_string()
         } else {
             x.nb_connections_limit.to_string()
         }
     ));
-    let peers_txt = pp!(pr, peers, |x: &TorrentProperties| format!(
-        "已连 {} / 共 {}",
-        x.peers, x.peers_total
-    ));
-    let seeds_txt = pp!(pr, seeds, |x: &TorrentProperties| format!(
-        "已连 {} / 共 {}",
-        x.seeds, x.seeds_total
-    ));
+    let peers_txt = pp!(pr, peers, |x: &TorrentProperties| tf(tr("已连 {} / 共 {}"), &[&x.peers, &x.peers_total]));
+    let seeds_txt = pp!(pr, seeds, |x: &TorrentProperties| tf(tr("已连 {} / 共 {}"), &[&x.seeds, &x.seeds_total]));
     let dl_time = pp!(pr, time_elapsed, |x: &TorrentProperties| fmt_duration(
         (x.time_elapsed - x.seeding_time).max(0)
     ));
 
     let items: Vec<(&'static str, String, bool)> = vec![
-        ("保存路径", save_path, false),
-        ("分片", pieces, false),
-        ("创建者", pp!(pr, created_by, |x: &TorrentProperties| dash_if_empty(&x.created_by)), false),
-        ("创建于", pp!(pr, creation_date, |x: &TorrentProperties| fmt_ts(x.creation_date)), false),
-        ("添加于", pp!(pr, addition_date, |x: &TorrentProperties| fmt_ts(x.addition_date)), false),
-        ("完成于", pp!(pr, completion_date, |x: &TorrentProperties| fmt_ts(x.completion_date)), false),
-        ("最近看完整", pp!(pr, last_seen, |x: &TorrentProperties| fmt_ts(x.last_seen)), false),
-        ("最近活动", fmt_ts(t.last_activity), false),
-        ("总大小", pp!(pr, total_size, |x: &TorrentProperties| fmt_size(x.total_size)), false),
-        ("已下载", pp!(pr, total_downloaded, |x: &TorrentProperties| fmt_size(x.total_downloaded)), false),
-        ("已上传", pp!(pr, total_uploaded, |x: &TorrentProperties| fmt_size(x.total_uploaded)), false),
-        ("浪费", pp!(pr, total_wasted, |x: &TorrentProperties| fmt_size(x.total_wasted)), false),
-        ("活动时间", pp!(pr, time_elapsed, |x: &TorrentProperties| fmt_duration(x.time_elapsed)), false),
-        ("下载耗时", dl_time, false),
-        ("做种时间", pp!(pr, seeding_time, |x: &TorrentProperties| fmt_duration(x.seeding_time)), false),
-        ("连接数", conn, false),
-        ("节点", peers_txt, false),
-        ("做种者", seeds_txt, false),
-        ("下载限速", pp!(pr, dl_limit, |x: &TorrentProperties| limit_cn(x.dl_limit)), false),
-        ("上传限速", pp!(pr, up_limit, |x: &TorrentProperties| limit_cn(x.up_limit)), false),
-        ("剩余时间", pp!(pr, eta, |x: &TorrentProperties| fmt_eta(x.eta)), false),
-        ("下载速度", pp!(pr, dl_speed, |x: &TorrentProperties| fmt_speed(x.dl_speed)), false),
-        ("上传速度", pp!(pr, up_speed, |x: &TorrentProperties| fmt_speed(x.up_speed)), false),
-        ("平均下载", pp!(pr, dl_speed_avg, |x: &TorrentProperties| fmt_speed(x.dl_speed_avg)), false),
-        ("平均上传", pp!(pr, up_speed_avg, |x: &TorrentProperties| fmt_speed(x.up_speed_avg)), false),
-        ("分享率", pp!(pr, share_ratio, |x: &TorrentProperties| fmt_ratio(x.share_ratio)), false),
-        ("热度", pp!(pr, popularity, |x: &TorrentProperties| format!("{:.2}", x.popularity)), false),
-        ("私有种子", pp!(pr, is_private, |x: &TorrentProperties| if x.is_private { "是".to_string() } else { "否".to_string() }), false),
-        ("信息哈希 v1", pp!(pr, infohash_v1, |x: &TorrentProperties| dash_if_empty(&x.infohash_v1)), true),
-        ("信息哈希 v2", pp!(pr, infohash_v2, |x: &TorrentProperties| dash_if_empty(&x.infohash_v2)), true),
+        (tr("保存路径"), save_path, false),
+        (tr("分片"), pieces, false),
+        (tr("创建者"), pp!(pr, created_by, |x: &TorrentProperties| dash_if_empty(&x.created_by)), false),
+        (tr("创建于"), pp!(pr, creation_date, |x: &TorrentProperties| fmt_ts(x.creation_date)), false),
+        (tr("添加于"), pp!(pr, addition_date, |x: &TorrentProperties| fmt_ts(x.addition_date)), false),
+        (tr("完成于"), pp!(pr, completion_date, |x: &TorrentProperties| fmt_ts(x.completion_date)), false),
+        (tr("最近看完整"), pp!(pr, last_seen, |x: &TorrentProperties| fmt_ts(x.last_seen)), false),
+        (tr("最近活动"), fmt_ts(t.last_activity), false),
+        (tr("总大小"), pp!(pr, total_size, |x: &TorrentProperties| fmt_size(x.total_size)), false),
+        (tr("已下载"), pp!(pr, total_downloaded, |x: &TorrentProperties| fmt_size(x.total_downloaded)), false),
+        (tr("已上传"), pp!(pr, total_uploaded, |x: &TorrentProperties| fmt_size(x.total_uploaded)), false),
+        (tr("浪费"), pp!(pr, total_wasted, |x: &TorrentProperties| fmt_size(x.total_wasted)), false),
+        (tr("活动时间"), pp!(pr, time_elapsed, |x: &TorrentProperties| fmt_duration(x.time_elapsed)), false),
+        (tr("下载耗时"), dl_time, false),
+        (tr("做种时间"), pp!(pr, seeding_time, |x: &TorrentProperties| fmt_duration(x.seeding_time)), false),
+        (tr("连接数"), conn, false),
+        (tr("节点"), peers_txt, false),
+        (tr("做种者"), seeds_txt, false),
+        (tr("下载限速"), pp!(pr, dl_limit, |x: &TorrentProperties| limit_cn(x.dl_limit)), false),
+        (tr("上传限速"), pp!(pr, up_limit, |x: &TorrentProperties| limit_cn(x.up_limit)), false),
+        (tr("剩余时间"), pp!(pr, eta, |x: &TorrentProperties| fmt_eta(x.eta)), false),
+        (tr("下载速度"), pp!(pr, dl_speed, |x: &TorrentProperties| fmt_speed(x.dl_speed)), false),
+        (tr("上传速度"), pp!(pr, up_speed, |x: &TorrentProperties| fmt_speed(x.up_speed)), false),
+        (tr("平均下载"), pp!(pr, dl_speed_avg, |x: &TorrentProperties| fmt_speed(x.dl_speed_avg)), false),
+        (tr("平均上传"), pp!(pr, up_speed_avg, |x: &TorrentProperties| fmt_speed(x.up_speed_avg)), false),
+        (tr("分享率"), pp!(pr, share_ratio, |x: &TorrentProperties| fmt_ratio(x.share_ratio)), false),
+        (tr("热度"), pp!(pr, popularity, |x: &TorrentProperties| format!("{:.2}", x.popularity)), false),
+        (tr("私有种子"), pp!(pr, is_private, |x: &TorrentProperties| if x.is_private { tr("是").to_string() } else { tr("否").to_string() }), false),
+        (tr("信息哈希 v1"), pp!(pr, infohash_v1, |x: &TorrentProperties| dash_if_empty(&x.infohash_v1)), true),
+        (tr("信息哈希 v2"), pp!(pr, infohash_v2, |x: &TorrentProperties| dash_if_empty(&x.infohash_v2)), true),
         ("Tracker", dash_if_empty(&t.tracker), false),
-        ("内容路径", dash_if_empty(&t.content_path), false),
-        ("分类", dash_if_empty(&t.category), false),
-        ("标签", dash_if_empty(&t.tags), false),
-        ("注释", pp!(pr, comment, |x: &TorrentProperties| dash_if_empty(&x.comment)), false),
+        (tr("内容路径"), dash_if_empty(&t.content_path), false),
+        (tr("分类"), dash_if_empty(&t.category), false),
+        (tr("标签"), dash_if_empty(&t.tags), false),
+        (tr("注释"), pp!(pr, comment, |x: &TorrentProperties| dash_if_empty(&x.comment)), false),
     ];
 
     egui::ScrollArea::vertical()
@@ -3064,7 +3046,7 @@ fn tracker_color(p: &Palette, status: i32) -> Color32 {
 /// **Trackers** —— 列对齐 WebUI：URL / Status / Peers / Seeds / Downloaded / Message
 fn detail_trackers(ui: &mut egui::Ui, p: &Palette, list: &[Tracker]) {
     if list.is_empty() {
-        empty_hint(ui, p, "该任务没有 Tracker 数据");
+        empty_hint(ui, p, tr("该任务没有 Tracker 数据"));
         return;
     }
     table_borderless(ui);
@@ -3085,11 +3067,11 @@ fn detail_trackers(ui: &mut egui::Ui, p: &Palette, list: &[Tracker]) {
         .column(Column::initial(220.0).at_least(90.0).clip(true))
         .header(th::HEADER_H, |mut h| {
             thead(&mut h, p, "URL");
-            thead(&mut h, p, "状态");
-            thead_r(&mut h, p, "节点");
-            thead_r(&mut h, p, "做种");
-            thead_r(&mut h, p, "已下载");
-            thead(&mut h, p, "消息");
+            thead(&mut h, p, tr("状态"));
+            thead_r(&mut h, p, tr("节点"));
+            thead_r(&mut h, p, tr("做种"));
+            thead_r(&mut h, p, tr("已下载"));
+            thead(&mut h, p, tr("消息"));
         })
         .body(|body| {
             body.rows(24.0, list.len(), |mut row| {
@@ -3119,7 +3101,7 @@ fn detail_trackers(ui: &mut egui::Ui, p: &Palette, list: &[Tracker]) {
 /// IP / Port / Connection / Flags / Client / Progress / DL / UP / Downloaded / Uploaded / Relevance / Files
 fn detail_peers(ui: &mut egui::Ui, p: &Palette, list: &[Peer]) {
     if list.is_empty() {
-        empty_hint(ui, p, "当前没有已连接的节点");
+        empty_hint(ui, p, tr("当前没有已连接的节点"));
         return;
     }
     table_borderless(ui);
@@ -3146,17 +3128,17 @@ fn detail_peers(ui: &mut egui::Ui, p: &Palette, list: &[Peer]) {
         .column(Column::initial(74.0).at_least(50.0).clip(true))
         .header(th::HEADER_H, |mut h| {
             thead(&mut h, p, "IP");
-            thead_r(&mut h, p, "端口");
-            thead(&mut h, p, "连接");
-            thead(&mut h, p, "标志");
-            thead(&mut h, p, "客户端");
-            thead(&mut h, p, "进度");
-            thead_r(&mut h, p, "下载");
-            thead_r(&mut h, p, "上传");
-            thead_r(&mut h, p, "已下载");
-            thead_r(&mut h, p, "已上传");
-            thead_r(&mut h, p, "相关度");
-            thead(&mut h, p, "文件");
+            thead_r(&mut h, p, tr("端口"));
+            thead(&mut h, p, tr("连接"));
+            thead(&mut h, p, tr("标志"));
+            thead(&mut h, p, tr("客户端"));
+            thead(&mut h, p, tr("进度"));
+            thead_r(&mut h, p, tr("下载"));
+            thead_r(&mut h, p, tr("上传"));
+            thead_r(&mut h, p, tr("已下载"));
+            thead_r(&mut h, p, tr("已上传"));
+            thead_r(&mut h, p, tr("相关度"));
+            thead(&mut h, p, tr("文件"));
         })
         .body(|body| {
             body.rows(24.0, list.len(), |mut row| {
@@ -3212,7 +3194,7 @@ fn detail_peers(ui: &mut egui::Ui, p: &Palette, list: &[Peer]) {
 /// **HTTP 源** —— 列对齐 WebUI：URL / Status
 fn detail_webseeds(ui: &mut egui::Ui, p: &Palette, list: &[WebSeed]) {
     if list.is_empty() {
-        empty_hint(ui, p, "该任务没有 HTTP 源（web seed）");
+        empty_hint(ui, p, tr("该任务没有 HTTP 源（web seed）"));
         return;
     }
     table_borderless(ui);
@@ -3229,7 +3211,7 @@ fn detail_webseeds(ui: &mut egui::Ui, p: &Palette, list: &[WebSeed]) {
         .column(Column::initial(110.0).at_least(80.0))
         .header(th::HEADER_H, |mut h| {
             thead(&mut h, p, "URL");
-            thead(&mut h, p, "状态");
+            thead(&mut h, p, tr("状态"));
         })
         .body(|body| {
             body.rows(24.0, list.len(), |mut row| {
@@ -3247,13 +3229,16 @@ fn detail_webseeds(ui: &mut egui::Ui, p: &Palette, list: &[WebSeed]) {
 
 /// **内容** —— 列对齐 WebUI：Name / Size / Progress / Priority / Remaining
 /// 内容页的优先级档位（对齐 WebAPI `filePrio` 接受的值：0/1/6/7）。
-const FILE_PRIOS: [(i32, &str); 4] = [(7, "最高"), (6, "高"), (1, "普通"), (0, "不下载")];
+/// `tr()` 不是 const fn，只能用普通函数每次构造（4 个元素，开销可忽略）。
+fn file_prios() -> [(i32, &'static str); 4] {
+    [(7, tr("最高")), (6, tr("高")), (1, tr("普通")), (0, tr("不下载"))]
+}
 
 fn prio_label(v: i32) -> &'static str {
-    FILE_PRIOS
+    file_prios()
         .iter()
         .find(|(pv, _)| *pv == v)
-        .map_or("普通", |(_, l)| *l)
+        .map_or(tr("普通"), |(_, l)| *l)
 }
 
 fn prio_color(p: &Palette, v: i32) -> Color32 {
@@ -3280,7 +3265,7 @@ fn detail_files(
     worker: &Worker,
 ) {
     if list.is_empty() {
-        empty_hint(ui, p, "该任务没有文件信息（可能是纯 magnet，元数据还没拿到）");
+        empty_hint(ui, p, tr("该任务没有文件信息（可能是纯 magnet，元数据还没拿到）"));
         return;
     }
     // 行内改动先攒着，表格画完统一发。
@@ -3303,12 +3288,12 @@ fn detail_files(
         .column(Column::initial(96.0).at_least(84.0))
         .column(Column::initial(96.0).at_least(80.0))
         .header(th::HEADER_H, |mut h| {
-            thead(&mut h, p, "下载");
-            thead(&mut h, p, "名称");
-            thead_r(&mut h, p, "大小");
-            thead(&mut h, p, "进度");
-            thead(&mut h, p, "优先级");
-            thead_r(&mut h, p, "剩余");
+            thead(&mut h, p, tr("下载"));
+            thead(&mut h, p, tr("名称"));
+            thead_r(&mut h, p, tr("大小"));
+            thead(&mut h, p, tr("进度"));
+            thead(&mut h, p, tr("优先级"));
+            thead_r(&mut h, p, tr("剩余"));
         })
         .body(|body| {
             body.rows(26.0, list.len(), |mut row| {
@@ -3347,7 +3332,7 @@ fn detail_files(
                                 .color(prio_color(p, f.priority)),
                         )
                         .show_ui(ui, |ui| {
-                            for (v, label) in FILE_PRIOS {
+                            for (v, label) in file_prios() {
                                 ui.selectable_value(&mut cur, v, label);
                             }
                         });

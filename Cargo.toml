@@ -1,6 +1,6 @@
 [package]
 name = "qb-client"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.76"
 description = "qBittorrent 桌面管理客户端（Rust + egui / WebAPI v2，兼容 qBittorrent 5.x）"
@@ -41,6 +41,11 @@ anyhow = "1"
 # eframe 的 ViewportCommand::SetTheme 在 0.29 是**空实现**，只能自己调 DWM。
 [target.'cfg(windows)'.dependencies]
 raw-window-handle = "0.6"
+
+# Windows：把 assets/icon.ico 编进 exe 的 RC 资源（快捷方式 / 资源管理器读的是它）。
+# 只在 Windows 目标下拉取 —— macOS / Linux 的 CI 没有 rc.exe，也不该为它付下载成本。
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "2"
 
 [profile.release]
 opt-level = 2

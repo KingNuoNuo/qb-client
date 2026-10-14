@@ -11,6 +11,7 @@ use reqwest::blocking::{multipart, Client, Response};
 use std::collections::HashMap;
 use std::time::Duration;
 
+use crate::i18n::{tf, tr};
 use crate::model::{
     CategoryMap, Peer, Torrent, TorrentFile, TorrentProperties, Tracker, TransferInfo, WebSeed,
 };
@@ -21,7 +22,7 @@ pub struct AuthExpired;
 
 impl std::fmt::Display for AuthExpired {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "会话已失效，需要重新登录")
+        write!(f, "{}", tr("会话已失效，需要重新登录"))
     }
 }
 impl std::error::Error for AuthExpired {}
@@ -86,7 +87,7 @@ impl QbClient {
         if st == reqwest::StatusCode::FORBIDDEN || st == reqwest::StatusCode::UNAUTHORIZED {
             return Err(anyhow::Error::new(AuthExpired));
         }
-        Err(anyhow!("服务器返回 HTTP {}", st.as_u16()))
+        Err(anyhow!("{}", tf(tr("服务器返回 HTTP {}"), &[&st.as_u16()])))
     }
 
     // ---------- 认证 ----------
@@ -104,19 +105,19 @@ impl QbClient {
 
         if r.status() == reqwest::StatusCode::FORBIDDEN {
             return Err(anyhow!(
-                "登录被拒绝：用户名或密码错误，或该 IP 已被临时封禁（qB 默认失败 5 次封 1 小时）"
+                tr("登录被拒绝：用户名或密码错误，或该 IP 已被临时封禁（qB 默认失败 5 次封 1 小时）")
             ));
         }
         if !r.status().is_success() {
-            return Err(anyhow!("登录请求失败：HTTP {}", r.status().as_u16()));
+            return Err(anyhow!("{}", tf(tr("登录请求失败：HTTP {}"), &[&r.status().as_u16()])));
         }
 
         let body = r.text().unwrap_or_default();
         let body = body.trim();
         if body != "Ok." {
             return Err(anyhow!(
-                "登录失败（返回 \"{}\"）：请检查用户名 / 密码",
-                body
+                "{}",
+                tf(tr("登录失败（返回 \"{}\"）：请检查用户名 / 密码"), &[&body])
             ));
         }
         Ok(())
@@ -472,7 +473,7 @@ impl QbClient {
             return Ok(());
         };
         if path.trim().is_empty() {
-            return Err(anyhow!("目标路径不能为空"));
+            return Err(anyhow!("{}", tr("目标路径不能为空")));
         }
         self.post_kv(
             "/api/v2/torrents/setLocation",
@@ -494,7 +495,7 @@ impl QbClient {
 
     pub fn create_category(&self, name: &str, save_path: &str) -> Result<()> {
         if name.trim().is_empty() {
-            return Err(anyhow!("分类名不能为空"));
+            return Err(anyhow!("{}", tr("分类名不能为空")));
         }
         self.post_kv(
             "/api/v2/torrents/createCategory",

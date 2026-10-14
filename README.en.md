@@ -86,6 +86,7 @@ theme and durations can be changed in one place, `theme.rs`.
 | Rate limits | Global up/down limits, per-torrent limits, alternative rate-limit mode toggle |
 | Categories & tags | Create categories, bulk change category, bulk add/remove tags (also per-torrent from the context menu) |
 | Other | Torrent details (five tabs: General / Trackers / Peers / HTTP sources / Content, columns aligned with the native WebUI), operation log, light & dark themes, live telemetry strip in the top bar, remembered theme and window size |
+| Languages | Simplified Chinese / English, **following the qBittorrent WebUI language setting** — the client reads `locale` from `/app/preferences` after connecting and switches automatically; changing the language in the WebUI takes effect within ~15s. Untranslated strings fall back to Chinese. States, priorities, peer flags, the operation log and error messages are all translated |
 | Display adaptation | All coordinates in logical points, following system DPI scaling (100%–200%) without blur or distortion; window size is automatically clamped into the usable area across monitors; interface zoom is an additional independent layer (Settings → Display, or Ctrl + / − / 0) |
 
 ---

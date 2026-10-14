@@ -9,6 +9,8 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 
+use crate::i18n::tr;
+
 /// `GET /api/v2/torrents/info` 的单个条目。
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
@@ -79,27 +81,27 @@ impl Torrent {
     /// 状态的中文描述。兼容 qB 5.x 把 `paused*` 改名为 `stopped*` 的变更。
     pub fn state_cn(&self) -> &'static str {
         match self.state.as_str() {
-            "error" => "错误",
-            "missingFiles" => "文件丢失",
-            "uploading" => "做种中",
-            "forcedUP" => "做种中(强制)",
-            "stalledUP" => "做种中(无连接)",
-            "checkingUP" => "校验中",
-            "queuedUP" => "排队做种",
-            "pausedUP" | "stoppedUP" => "已完成(已停止)",
-            "allocating" => "分配空间",
-            "downloading" => "下载中",
-            "forcedDL" => "下载中(强制)",
-            "metaDL" => "获取元数据",
-            "stalledDL" => "下载中(无连接)",
-            "checkingDL" => "校验中",
-            "queuedDL" => "排队下载",
-            "pausedDL" | "stoppedDL" => "已暂停",
-            "stopped" => "已停止",
-            "checkingResumeData" => "校验恢复数据",
-            "moving" => "移动中",
-            "unknown" => "未知",
-            _ => "未知",
+            "error" => tr("错误"),
+            "missingFiles" => tr("文件丢失"),
+            "uploading" => tr("做种中"),
+            "forcedUP" => tr("做种中(强制)"),
+            "stalledUP" => tr("做种中(无连接)"),
+            "checkingUP" => tr("校验中"),
+            "queuedUP" => tr("排队做种"),
+            "pausedUP" | "stoppedUP" => tr("已完成(已停止)"),
+            "allocating" => tr("分配空间"),
+            "downloading" => tr("下载中"),
+            "forcedDL" => tr("下载中(强制)"),
+            "metaDL" => tr("获取元数据"),
+            "stalledDL" => tr("下载中(无连接)"),
+            "checkingDL" => tr("校验中"),
+            "queuedDL" => tr("排队下载"),
+            "pausedDL" | "stoppedDL" => tr("已暂停"),
+            "stopped" => tr("已停止"),
+            "checkingResumeData" => tr("校验恢复数据"),
+            "moving" => tr("移动中"),
+            "unknown" => tr("未知"),
+            _ => tr("未知"),
         }
     }
 
@@ -185,12 +187,12 @@ pub struct Tracker {
 impl Tracker {
     pub fn status_cn(&self) -> &'static str {
         match self.status {
-            0 => "已禁用",
-            1 => "未联系",
-            2 => "工作中",
-            3 => "更新中",
-            4 => "不工作",
-            _ => "未知",
+            0 => tr("已禁用"),
+            1 => tr("未联系"),
+            2 => tr("工作中"),
+            3 => tr("更新中"),
+            4 => tr("不工作"),
+            _ => tr("未知"),
         }
     }
 }
@@ -328,20 +330,20 @@ fn flags_letters_cn(flags: &str) -> String {
     let mut out: Vec<&str> = Vec::new();
     for c in flags.chars() {
         let s = match c {
-            'D' => "正在下载",
-            'd' => "想要下载",
-            'U' => "正在上传",
-            'u' => "允许上传",
-            'O' => "乐观解阻塞",
-            'S' => "被阻塞",
-            'I' => "对方感兴趣",
-            'i' => "表示感兴趣",
-            'K' => "已解除阻塞",
-            '?' => "未知",
-            'E' => "加密",
-            'H' => "来自 DHT",
-            'X' => "来自 PEX",
-            'L' => "来自本地",
+            'D' => tr("正在下载"),
+            'd' => tr("想要下载"),
+            'U' => tr("正在上传"),
+            'u' => tr("允许上传"),
+            'O' => tr("乐观解阻塞"),
+            'S' => tr("被阻塞"),
+            'I' => tr("对方感兴趣"),
+            'i' => tr("表示感兴趣"),
+            'K' => tr("已解除阻塞"),
+            '?' => tr("未知"),
+            'E' => tr("加密"),
+            'H' => tr("来自 DHT"),
+            'X' => tr("来自 PEX"),
+            'L' => tr("来自本地"),
             _ => continue,
         };
         out.push(s);
@@ -381,11 +383,11 @@ pub struct TorrentFile {
 impl TorrentFile {
     pub fn priority_cn(&self) -> &'static str {
         match self.priority {
-            0 => "不下载",
-            1 => "普通",
-            6 => "高",
-            7 => "最高",
-            _ => "普通",
+            0 => tr("不下载"),
+            1 => tr("普通"),
+            6 => tr("高"),
+            7 => tr("最高"),
+            _ => tr("普通"),
         }
     }
 }

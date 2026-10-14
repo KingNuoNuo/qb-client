@@ -4,6 +4,8 @@
 
 use chrono::{Local, TimeZone};
 
+use crate::i18n::{tf, tr};
+
 /// 字节数 → 人类可读（KiB / MiB / GiB …）
 pub fn fmt_size(bytes: i64) -> String {
     let b = bytes.max(0) as f64;
@@ -42,7 +44,7 @@ pub fn fmt_eta(secs: i64) -> String {
     let m = (secs % 3600) / 60;
     let s = secs % 60;
     if d > 0 {
-        format!("{}天{}时", d, h)
+        tf(tr("{}天{}时"), &[&d, &h])
     } else if h > 0 {
         format!("{}:{:02}:{:02}", h, m, s)
     } else {
@@ -59,11 +61,11 @@ pub fn fmt_duration(secs: i64) -> String {
     let h = (secs % 86400) / 3600;
     let m = (secs % 3600) / 60;
     if d > 0 {
-        format!("{}天{}时", d, h)
+        tf(tr("{}天{}时"), &[&d, &h])
     } else if h > 0 {
-        format!("{}时{}分", h, m)
+        tf(tr("{}时{}分"), &[&h, &m])
     } else {
-        format!("{}分", m)
+        tf(tr("{}分"), &[&m])
     }
 }
 

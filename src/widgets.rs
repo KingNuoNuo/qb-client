@@ -20,6 +20,7 @@ use egui::{
 };
 
 use crate::theme::{self as t, Palette, R_SM, S2};
+use crate::i18n::tr;
 
 /// `Painter::add` 返回的槽位句柄类型别名。只在这一处引用，方便将来 API 变动。
 pub type Slot = egui::layers::ShapeIdx;
@@ -154,15 +155,21 @@ pub fn section(ui: &mut Ui, p: &Palette, text: &str) {
     }
 }
 
-/// 给短标签加字距：`"状态"` → `"状 态"`。
+/// 给中文短标签加字距：`"状态"` → `"状 态"`。
 /// egui 没有 letter-spacing，用空格模拟小字号标题的追踪感。
+///
+/// 仅当两个相邻字符都是 CJK 时才插空格——英文（及拉丁字母）之间不加，
+/// 否则英文标签会被拆成 `S t a t u s`。
 pub fn spaced(s: &str) -> String {
     let mut o = String::new();
-    for (i, c) in s.chars().enumerate() {
-        if i > 0 {
+    let mut prev_cjk = false;
+    for c in s.chars() {
+        let is_cjk = (c as u32) > 0x2E80;
+        if prev_cjk && is_cjk {
             o.push(' ');
         }
         o.push(c);
+        prev_cjk = is_cjk;
     }
     o
 }
@@ -911,7 +918,7 @@ pub fn close_button(ui: &mut Ui, p: &Palette, rect: Rect) -> Response {
         painter.rect_stroke(rect, round, Stroke::new(2.0_f32, p.accent));
     }
 
-    resp.on_hover_text("关闭（Esc）")
+    resp.on_hover_text(tr("关闭（Esc）"))
 }
 
 /// 弹窗页脚：发丝线 + 右对齐的按钮行。
