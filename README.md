@@ -272,8 +272,8 @@ python _static_check.py
 | 页面浏览量 | 11 |
 | 独立访客 | 6 |
 | 克隆次数 | 168 |
-| 独立克隆者 | 81 |
+| 独立克隆者 | 80 |
 
-<sub>数据窗口 2026-11-13 ~ 2026-11-26 · 由 GitHub Actions 每日更新于 2026-11-27 · 来源：GitHub Traffic API（仅统计最近 14 天）</sub>
+<sub>数据窗口 2026-11-14 ~ 2026-11-27 · 由 GitHub Actions 每日更新于 2026-11-28 · 来源：GitHub Traffic API（仅统计最近 14 天）</sub>
 
 <!-- traffic:end -->
